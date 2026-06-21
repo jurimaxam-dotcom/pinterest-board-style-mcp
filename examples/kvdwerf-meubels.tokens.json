@@ -1,0 +1,51 @@
+{
+  "color": {
+    "$type": "color",
+    "background": { "$value": "#F1EFEA", "$description": "Off-White; neutraler Seamless-/Studio-Hintergrund der Produktshots. dominance 0.78, confidence 0.88" },
+    "surface":    { "$value": "#C7C5C0", "$description": "kuehles Beton-/Hellgrau (Boeden, Waende). dominance 0.45, confidence 0.78" },
+    "text":       { "$value": "#1F1E1C", "$description": "Mattschwarz; schlanke Metallrahmen + Kontrast (Signatur-'Linie'). dominance 0.58, confidence 0.85" },
+    "primary":    { "$value": "#C7A876", "$description": "helles Naturholz (Eiche/Esche/Kiefer); dominantes Material. dominance 0.62, confidence 0.82" },
+    "accent":     { "$value": "#5E4632", "$description": "Walnuss/Dunkelholz; zweites Signatur-Material. ACHTUNG: kein konsistenter CHROMA-Akzent im Board — Akzent ist materiell, nicht farbig. dominance 0.40, confidence 0.7" },
+    "muted":      { "$value": "#5F7A7C", "$description": "gedaempftes Petrol/Teal; der haeufigste nicht-neutrale Ton (Wandakzente), aber vereinzelt. dominance 0.18, confidence 0.5" },
+    "palette": {
+      "0": { "$value": "#F1EFEA", "$description": "Off-White. dominance 0.78" },
+      "1": { "$value": "#C7A876", "$description": "helles Naturholz. dominance 0.62" },
+      "2": { "$value": "#1F1E1C", "$description": "Mattschwarz (Metall). dominance 0.58" },
+      "3": { "$value": "#C7C5C0", "$description": "Beton-/Hellgrau. dominance 0.45" },
+      "4": { "$value": "#5E4632", "$description": "Walnuss. dominance 0.40" },
+      "5": { "$value": "#5F7A7C", "$description": "gedaempftes Petrol/Teal (vereinzelter Akzent). dominance 0.18" },
+      "6": { "$value": "#B06A4E", "$description": "Terracotta/Oxblood (vereinzelter Akzent). dominance 0.15" },
+      "7": { "$value": "#8C8A6E", "$description": "Salbei/Olive (vereinzelter Wandton). dominance 0.15" }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "base": { "$value": "2px", "$description": "inferiert: ueberwiegend scharfe, geometrische Kanten (A-Frames, Trapez, Hairpin, Cantilever); nur vereinzelt skulpturale Kurven (Bugholz). confidence 0.6" }
+  },
+  "$extensions": {
+    "boardStyle": {
+      "mood": ["minimalist", "mid-century", "sculptural", "scandinavian", "material-honest"],
+      "era": "Mid-Century-Modern x zeitgenoessisches skandinavisches Design",
+      "temperature": "neutral",
+      "saturation": "muted",
+      "contrast": "high",
+      "density": "airy",
+      "typography": {
+        "classification": "sans",
+        "weight": "light",
+        "case": "lowercase",
+        "formality": "understated-modern"
+      },
+      "texture": "matte Holzmaserung (Eiche/Esche/Walnuss), pulverbeschichtetes schlankes Schwarz-Metall, roher Beton; low-gloss, material-honest, taktil",
+      "imagery": "Produkt-/Studio-Fotografie auf neutralem Seamless + vereinzelt gestylte Interior-Vignetten; viel Negativraum, weiches Tageslicht",
+      "outliers": [
+        { "image": 12, "why": "grell-primaerfarbige Draht-Baenke (Gruen/Rot) — bricht die gedaempfte Holz/Schwarz/Weiss-Palette" },
+        { "image": 15, "why": "Transforming-Moebel in Primaerfarben (Blau/Gelb/Gruen/Rot/Lila) + Person — chromatischer & stilistischer Ausreisser" },
+        { "image": 16, "why": "Outdoor-Kontext (Backstein/Hof) — Kontext-Ausreisser; Palette (Schwarz+Kiefer) bleibt on-theme" }
+      ],
+      "confidence": { "color": 0.7, "typography": 0.2, "overall": 0.6 },
+      "source": { "board_slug": "kvdwerf-meubels", "image_count": 24 },
+      "notes": "Organisches Board OHNE Marken-Chrome — aber deutlich HETEROGENER als ein art-direktetes Kampagnen-Board: Produkt-Shots mit wechselnden Hintergruenden und verstreuten, inkonsistenten Akzentfarben. Das hoch-konfidente Signal ist MATERIAL/FORM (helles Holz + Walnuss + schlankes Mattschwarz-Metall, skulpturale Geometrie), NICHT eine kohaerente Akzentpalette. confidence ist daher NICHT hoeher als beim chrome-belasteten Board — Chrome-Entfernung loest ein Problem, Heterogenitaet bringt ein anderes."
+    }
+  }
+}
