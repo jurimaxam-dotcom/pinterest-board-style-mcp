@@ -1,6 +1,11 @@
 # Spec: board-style-extractor (v1, RSS)
 
-**Datum:** 2026-06-21 · **Status:** freigegeben, in Umsetzung · **Scope:** project(Pinterest MCP)
+**Datum:** 2026-06-21 · **Status:** umgesetzt + ausgeliefert · **Scope:** project(Pinterest MCP)
+
+> **Update 2026-06-22:** Fetcher + Skill + **MCP-Server** (`scripts/mcp_server.py`) sind ausgeliefert
+> und getestet (`./test.sh`, 19 Tests). Der RSS-Weg (≤25 öffentliche Pins) ist der **finale** Ansatz;
+> OAuth/API ist optional/deferred (`v2-oauth-api.md`). Die unten stehende „bewusst ohne MCP"-Formulierung
+> beschreibt nur die ursprüngliche v1-Reihenfolge, nicht den Endstand.
 
 ## Ziel / Hypothese
 

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+  <channel>
+    <title>Test Board</title>
+    <link>https://www.pinterest.com/testuser/test-board/</link>
+    <item>
+      <title>Pin One</title>
+      <link>https://www.pinterest.com/pin/111/</link>
+      <description>&lt;a href="https://www.pinterest.com/pin/111/"&gt;&lt;img src="https://i.pinimg.com/236x/ab/cd/ef/0123456789abcdef0123456789ab01.jpg"&gt;&lt;/a&gt;Pin One desc</description>
+    </item>
+    <item>
+      <title>Pin Two</title>
+      <link>https://www.pinterest.com/pin/222/</link>
+      <description>&lt;a&gt;&lt;img src="https://i.pinimg.com/236x/11/22/33/0123456789abcdef0123456789ab02.jpg"&gt;&lt;/a&gt;</description>
+    </item>
+    <item>
+      <title>Pin Three</title>
+      <link>https://www.pinterest.com/pin/333/</link>
+      <description>&lt;img src="https://i.pinimg.com/236x/44/55/66/0123456789abcdef0123456789ab03.jpg"&gt;</description>
+    </item>
+  </channel>
+</rss>

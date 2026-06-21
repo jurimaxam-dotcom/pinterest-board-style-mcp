@@ -39,7 +39,7 @@ DTCG-Tokens + Style-Brief → designt damit weiter.
 ## Wie es funktioniert
 
 ```
-Board-URL  ──►  MCP get_board_style  ──►  .rss (≤25 Pins, keine Auth)  ──►  Bilder nach .cache/
+Board-URL  ──►  MCP get_board_style  ──►  .rss (≤25 Pins, keine Auth)  ──►  Bilder nach ~/.cache/pinterest-board-style/
                                                                                     │
    Claude liest die Bilder (Vision)  ◄───────────────────────────────────────────  ┘
                      │
@@ -69,16 +69,29 @@ hält **Ausreißer-Bilder** separat und aggregiert per Mehrheit über alle Bilde
 
 Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselbe DTCG-Schema.
 
+## Cache & Verifikation
+
+- **Cache-Orte:** Der **MCP-Server** legt Bilder unter `~/.cache/pinterest-board-style/<slug>/` ab
+  (immer schreibbar — auch wenn das Arbeitsverzeichnis read-only ist, z.B. in Claude Desktop). Das
+  **CLI** `fetch_board.py` cachet projektlokal nach `./.cache/<slug>/` (per `--out` änderbar).
+- **Tests:** `./test.sh` — deterministische stdlib-Tests (kein Netz, RSS-Fixture): URL-Ableitung,
+  RSS-Parsing, XXE-Guard, Validator (grün **und** rot), MCP-Protokoll + Fehlerfälle.
+- **Validator-Strenge (ehrlich):** `validate_tokens.py` prüft die **Kern-Invarianten** (Hex-Farben,
+  Pflicht-Rollen, Enums, confidence-Range) — **nicht** das vollständige JSON-Schema. Das komplette
+  DTCG-Schema liegt in `.claude/skills/board-style-extractor/dtcg.schema.json`.
+
 ## Struktur
 
 ```
 .
 ├── scripts/
-│   ├── fetch_board.py        # RSS-Fetcher (stdlib): Board → .cache/<slug>/ + manifest.json
-│   ├── mcp_server.py         # stdio-MCP-Server (stdlib): Tool get_board_style
-│   └── validate_tokens.py    # DTCG-Validator (stdlib)
+│   ├── fetch_board.py        # RSS-Fetcher (stdlib, CLI): Board → ./.cache/<slug>/ + manifest.json
+│   ├── mcp_server.py         # stdio-MCP-Server (stdlib); Cache: ~/.cache/pinterest-board-style/
+│   └── validate_tokens.py    # Token-Validator (stdlib): Kern-Invarianten
 ├── .claude/skills/
-│   └── board-style-extractor/  # Skill (SKILL.md + dtcg.schema.json)
+│   └── board-style-extractor/  # Skill (SKILL.md + dtcg.schema.json = volles DTCG-Schema)
+├── tests/                    # stdlib-Tests (kein Netz) + RSS-Fixture
+├── test.sh                   # Grün/Rot-Gate
 ├── .mcp.json                 # Auto-Registrierung bei offenem Repo
 ├── examples/                 # Beispiel-Outputs (tokens.json + style.md)
 └── docs/                     # Recherche, Specs (inkl. optionaler OAuth-Pfad)
@@ -89,9 +102,10 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 | Komponente | Status |
 |---|---|
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
-| Skill `board-style-extractor` (+ DTCG-Schema) | ✅ |
-| DTCG-Validator (`validate_tokens.py`) | ✅ |
+| Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
+| Token-Validator (`validate_tokens.py`) — Kern-Invarianten, nicht volles JSON-Schema | ✅ |
 | **stdio-MCP-Server (`mcp_server.py`)** | ✅ |
+| Test-Gate (`./test.sh`, stdlib, kein Netz) | ✅ 19 Tests |
 | Beispiel-Läufe (`examples/`) | ✅ Home Depot + kvdwerf/meubels |
 | Optionaler OAuth-Pfad (private Boards) | 📄 spezifiziert, nicht Pflicht |
 

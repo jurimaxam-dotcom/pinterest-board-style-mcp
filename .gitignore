@@ -23,4 +23,12 @@ board-cache/
 # Lokales Read-Tracking (Session-Reflex) — nicht ins oeffentliche Repo
 docs/.seen
 
+# Codex/Agents-Runtime-Artefakte (von Codex-Reviews erzeugt, nicht Teil des Repos)
+.agents/
+.codex/
+
+# IDE
+.idea/
+.vscode/
+
 # Hinweis: DTCG-Design-Output (z. B. examples/tokens.json) wird bewusst NICHT ignoriert.
