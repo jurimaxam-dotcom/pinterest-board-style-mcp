@@ -1,0 +1,4 @@
+/* Radius - inferiert aus dem Board. Auto-generiert. */
+:root {
+  --radius-base: 2px;  /* inferiert: ueberwiegend scharfe, geometrische Kanten (A-Frames, Trapez, Hairpin, Cantilever); nur vereinzelt skulpturale Kurven (Bugholz). confidence 0.6 */
+}
