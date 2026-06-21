@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Secrets / OAuth-Tokens (Pinterest, ab v2)
+.env
+.env.*
+.pinterest-tokens.json
+.pinterest-mcp/
+
+# Heruntergeladene Board-Bilder / Fetch-Cache
+.cache/
+board-cache/
+*.tmp
+
+# OS
+.DS_Store
+
+# Lokales Read-Tracking (Session-Reflex) — nicht ins oeffentliche Repo
+docs/.seen
+
+# Hinweis: DTCG-Design-Output (z. B. examples/tokens.json) wird bewusst NICHT ignoriert.
