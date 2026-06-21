@@ -8,6 +8,7 @@ __pycache__/
 # Secrets / OAuth-Tokens (Pinterest, ab v2)
 .env
 .env.*
+!.env.example
 .pinterest-tokens.json
 .pinterest-mcp/
 

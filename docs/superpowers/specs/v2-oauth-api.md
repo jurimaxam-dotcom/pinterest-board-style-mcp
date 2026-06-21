@@ -48,8 +48,9 @@ Confidential Client (v5 kennt **kein PKCE** → `client_secret` nötig), läuft 
 3. Nutzer bestätigt → Redirect auf `…/callback?code=…&state=…`. Server prüft `state` (CSRF), greift `code`.
 4. **Token-Exchange:** `POST https://api.pinterest.com/v5/oauth/token`
    - Header `Authorization: Basic base64(client_id:client_secret)`, `Content-Type: application/x-www-form-urlencoded`
-   - Body `grant_type=authorization_code&code=$CODE&redirect_uri=http://127.0.0.1:8585/callback`
-   - Antwort: `access_token` (30 d), `refresh_token` (60 d, rotierend), `expires_in`, `refresh_token_expires_in`, `scope`.
+   - Body `grant_type=authorization_code&code=$CODE&redirect_uri=http://127.0.0.1:8585/callback&continuous_refresh=true`
+     — **`continuous_refresh=true` ist Pflicht** fuer den 60-Tage-Rotations-Refresh-Token.
+   - Antwort: `access_token` (Prefix `pina`, `expires_in` 2592000 = 30 d), `refresh_token` (Prefix `pinr`, `refresh_token_expires_in` 5184000 = 60 d, `refresh_token_expires_at` absolut, **rotiert bei jedem Refresh**), `token_type: bearer`, `scope`.
 5. Schreibt `.pinterest-tokens.json` (Perms **0600**).
 
 **Token-Persistenz & Refresh:**
@@ -97,6 +98,18 @@ Bei mehreren/unklaren Treffern: Board-Liste ausgeben + `--board-id` verlangen.
 
 ---
 
+## Build-Schritt 0 — gegen offizielle Doku verifiziert (2026-06-21 · Context7 `/websites/developers_pinterest` + OpenAPI `v5/openapi.yaml`)
+
+- **Authorize-URL bestaetigt:** `https://www.pinterest.com/oauth/?client_id=…&redirect_uri=…&response_type=code&scope=boards:read,pins:read&state=…` (Scopes **komma**-separiert).
+- **Token-Endpoint bestaetigt:** `POST https://api.pinterest.com/v5/oauth/token`, `Authorization: Basic b64(client_id:client_secret)`, `Content-Type: application/x-www-form-urlencoded`.
+- **Korrektur `continuous_refresh=true`:** beim `authorization_code`-Exchange Pflicht → 60-Tage-**Rotations**-Refresh-Token; jede Refresh-Antwort enthaelt einen NEUEN `refresh_token` (→ zurueckschreiben).
+- **Token-Antwort bestaetigt:** `access_token` (`pina…`, 30 d), `refresh_token` (`pinr…`, 60 d, `refresh_token_expires_at` absolut), `token_type: bearer`, `scope`.
+- **Refresh bestaetigt:** `grant_type=refresh_token&refresh_token=…[&scope=boards:read]`.
+- **`media.images`-Keys bestaetigt:** `150x150`, `400x300`, `600x`, **`1200x`** — je `{width,height,url}` (i.pinimg). `1200x` = groesste, nicht hochskaliert (reale Aufloesung ≤ 1200).
+- **`dominant_color`** je Pin bestaetigt (kann `null` sein) → optionales Analyse-Signal (nur ins Manifest, s. Entscheidung 4).
+- **Pagination:** `bookmark` (Query-Param) + `items[]`; **page_size Default 25, max 100** → explizit `page_size=100`.
+- **Media-Guard:** nur Pins mit `media.media_type == "image"` und vorhandenem `images["1200x"]`; Videos/Mehrfach-Medien ueberspringen (oder groesste vorhandene Variante).
+
 ## Build-Reihenfolge
 
 0. **Verifikation zuerst (Context7/Pinterest-Doku):** exakte v5-OAuth-Param-/Endpoint-Namen gegen aktuelle Doku prüfen (analog zur RSS-Recon — erst Fakten, dann Code).
@@ -113,7 +126,7 @@ Bei mehreren/unklaren Treffern: Board-Liste ausgeben + `--board-id` verlangen.
 - Kein Token/Secret in Logs (Auth-Modul redacted).
 - `state`-CSRF, Loopback-only, keine Webhooks.
 
-## Offene Punkte (für deine Freigabe)
+## Entscheidungen (freigegeben 2026-06-21 — alle 5 Empfehlungen übernommen)
 
 1. **Token-Store-Ort:** Repo-lokal `.pinterest-tokens.json` *(Empfehlung — einfach, schon gitignored)* vs. `~/.config/pinterest-board-style/tokens.json` (kann gar nicht versehentlich committet werden, via `--token-store`).
 2. **Redirect-Port:** fix `8585` *(Empfehlung — muss in App-Registrierung eingetragen werden)* vs. dynamisch; via Env überschreibbar.
