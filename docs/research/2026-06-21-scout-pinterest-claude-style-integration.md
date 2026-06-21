@@ -14,9 +14,10 @@ daraus eine wiederverwendbare Style-Vorlage** (Design-Tokens/Brief) ableiten, an
 beim Bauen orientiert. Plausibler nächster Schritt: ein **lokaler MCP-Server**, der Board-Pins
 holt + die Bilder an Claude übergibt, plus eine **Skill**, die die Style-Ableitung kapselt.
 
-> **„Claude Design" ist kein Produkt.** Gemeint ist Claudes Frontend-/Design-Fähigkeit — offiziell
-> abgebildet durch das Anthropic-Plugin **`frontend-design`** (SKILL.md) + das Cookbook
-> *„Prompting for frontend aesthetics"* (12.11.2025). Genau das ist der „Claude-Design"-Teil.
+> **KORREKTUR (2026-06-21): „Claude Design" IST ein Produkt.** Anthropic-Labs, Start 17.04.2026
+> (Opus 4.7, Research Preview) — baut Design-Systems aus Codebase/Files/Bildern/GitHub. Der ursprüngliche
+> Satz hier war falsch (Trainingsstand). Die `frontend-design`-Skill + das Cookbook *„Prompting for
+> frontend aesthetics"* sind ein *verwandtes, separates* Hilfsmittel. Details + Projekt-Bezug: `docs/claude-design.md`.
 
 ---
 
