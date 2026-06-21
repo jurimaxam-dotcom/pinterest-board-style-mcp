@@ -1,0 +1,50 @@
+{
+  "color": {
+    "$type": "color",
+    "background": { "$value": "#EFE9DF", "$description": "warmes Cremeweiss; Waende/Arbeitsplatten/Cleanspace. dominance 0.80, confidence 0.85" },
+    "surface":    { "$value": "#D9D0C4", "$description": "Greige als sekundaere ruhige Flaeche. dominance 0.40, confidence 0.75" },
+    "text":       { "$value": "#2B2926", "$description": "warmes Anthrazit; Mattschwarz-Armaturen, dunkle Florals, Kontrast. dominance 0.50, confidence 0.85" },
+    "primary":    { "$value": "#6B4A33", "$description": "Walnuss-Holz; das Signatur-Material des Boards (Vanities). dominance 0.70, confidence 0.85" },
+    "accent":     { "$value": "#5C6F86", "$description": "Dusty Blue; wiederkehrend in Botanik-Tapeten und Fliesen-Wainscot. dominance 0.50, confidence 0.80" },
+    "muted":      { "$value": "#97A286", "$description": "Salbei/Eukalyptus; gedaempfter Sekundaerton (Waende, gruene Vanities). dominance 0.35, confidence 0.78" },
+    "palette": {
+      "0": { "$value": "#EFE9DF", "$description": "Cremeweiss. dominance 0.80" },
+      "1": { "$value": "#6B4A33", "$description": "Walnuss-Holz. dominance 0.70" },
+      "2": { "$value": "#2B2926", "$description": "Anthrazit/Mattschwarz. dominance 0.50" },
+      "3": { "$value": "#5C6F86", "$description": "Dusty Blue. dominance 0.50" },
+      "4": { "$value": "#B08D57", "$description": "Messing/Gold (metallischer Akzent). dominance 0.45" },
+      "5": { "$value": "#D9D0C4", "$description": "Greige. dominance 0.40" },
+      "6": { "$value": "#97A286", "$description": "Salbei. dominance 0.35" },
+      "7": { "$value": "#B5663F", "$description": "Terracotta/Clay (warmer Erdakzent, Pins 3/19/20). dominance 0.20" }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "base": { "$value": "6px", "$description": "inferiert: ueberwiegend weiche, leicht gerundete Kanten (gerahmte Spiegel, Shaker-/Fluted-Fronten); kein Hochglanz-/0px-Look. confidence 0.5" }
+  },
+  "$extensions": {
+    "boardStyle": {
+      "mood": ["warm", "traditional", "botanical", "transitional", "inviting"],
+      "era": "Modern-Traditional / Transitional (2020s)",
+      "temperature": "warm",
+      "saturation": "muted",
+      "contrast": "medium",
+      "density": "balanced",
+      "typography": {
+        "classification": "serif",
+        "weight": "regular",
+        "case": "title",
+        "formality": "klassisch-raffiniert"
+      },
+      "texture": "matte Holzmaserung (Walnuss/Eiche), Marmoraederung, Encaustic-/Mosaik-Fliesen, gemusterte Botanik-Tapete; taktil, geschichtet, low-gloss",
+      "imagery": "gestylte Interior-Fotografie, warmes Tageslicht, Raum-Vignetten auf Augenhoehe",
+      "outliers": [
+        { "image": 6, "why": "Personen-Portraet (Brand-Lifestyle), kein Interior; Hautton/gruener Hintergrund wuerden die Palette verfaelschen" },
+        { "image": 15, "why": "Hardware-Flatlay (Aufsicht), kein Raumkontext; aus Mood/Spatial-Read ausgeschlossen (Metall-Toene fliessen aber in die Palette ein)" }
+      ],
+      "confidence": { "color": 0.8, "typography": 0.3, "overall": 0.68 },
+      "source": { "board_slug": "homedepot-bath-ideas-and-inspiration", "image_count": 24 },
+      "notes": "Board ist ein Home-Depot-MARKETING-Board: oranges Logo (#F96302), orange CTA-Leiste, weisse Headline-Bloecke und fette Versal-Ad-Schrift in ~16/24 Pins = Marken-/Template-Chrome, NICHT der Interior-Style. Orange wurde bewusst aus der Palette ausgeschlossen; die typography ist aus dem Interior-Mood inferiert (NICHT aus der On-Board-Ad-Schrift). Die Tokens beschreiben die gezeigten Badezimmer-Interiors."
+    }
+  }
+}

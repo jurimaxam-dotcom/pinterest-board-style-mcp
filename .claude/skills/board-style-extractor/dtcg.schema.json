@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "board-style DTCG tokens",
+  "description": "W3C-DTCG Design-Tokens, aus einem Pinterest-Board abgeleitet. Pixel-gegruendete Werte als echte Tokens (color, radius); qualitative/inferierte Style-Intelligenz unter $extensions.boardStyle. Dieselbe Datei dient v2 als output_format fuer echte Structured Outputs.",
+  "type": "object",
+  "required": ["color", "$extensions"],
+  "properties": {
+    "color": {
+      "type": "object",
+      "required": ["$type", "background", "surface", "text", "primary", "accent", "muted", "palette"],
+      "properties": {
+        "$type": { "const": "color" },
+        "background": { "$ref": "#/$defs/colorToken" },
+        "surface": { "$ref": "#/$defs/colorToken" },
+        "text": { "$ref": "#/$defs/colorToken" },
+        "primary": { "$ref": "#/$defs/colorToken" },
+        "accent": { "$ref": "#/$defs/colorToken" },
+        "muted": { "$ref": "#/$defs/colorToken" },
+        "palette": {
+          "type": "object",
+          "description": "Nach dominance gerankte Palette, Keys '0','1',... ",
+          "minProperties": 3,
+          "patternProperties": { "^[0-9]+$": { "$ref": "#/$defs/colorToken" } }
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "required": ["$type", "base"],
+      "properties": {
+        "$type": { "const": "dimension" },
+        "base": { "$ref": "#/$defs/dimensionToken" }
+      }
+    },
+    "$extensions": {
+      "type": "object",
+      "required": ["boardStyle"],
+      "properties": { "boardStyle": { "$ref": "#/$defs/boardStyle" } }
+    }
+  },
+  "$defs": {
+    "colorToken": {
+      "type": "object",
+      "required": ["$value"],
+      "properties": {
+        "$value": { "type": "string", "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$" },
+        "$type": { "const": "color" },
+        "$description": { "type": "string" }
+      }
+    },
+    "dimensionToken": {
+      "type": "object",
+      "required": ["$value"],
+      "properties": {
+        "$value": { "type": "string", "pattern": "^[0-9.]+(px|rem)$" },
+        "$type": { "const": "dimension" },
+        "$description": { "type": "string" }
+      }
+    },
+    "boardStyle": {
+      "type": "object",
+      "required": ["mood", "era", "temperature", "saturation", "contrast", "density", "typography", "texture", "imagery", "outliers", "confidence", "source"],
+      "properties": {
+        "mood": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+        "era": { "type": "string" },
+        "temperature": { "enum": ["warm", "cool", "neutral"] },
+        "saturation": { "enum": ["muted", "balanced", "vibrant"] },
+        "contrast": { "enum": ["low", "medium", "high"] },
+        "density": { "enum": ["airy", "balanced", "dense"] },
+        "typography": {
+          "type": "object",
+          "required": ["classification", "case", "formality"],
+          "properties": {
+            "classification": { "enum": ["serif", "sans", "mono", "display", "handwritten", "mixed"] },
+            "weight": { "type": "string" },
+            "case": { "enum": ["uppercase", "lowercase", "mixed", "title"] },
+            "formality": { "type": "string" }
+          }
+        },
+        "texture": { "type": "string" },
+        "imagery": { "type": "string" },
+        "outliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["image", "why"],
+            "properties": {
+              "image": { "type": "integer" },
+              "why": { "type": "string" }
+            }
+          }
+        },
+        "confidence": {
+          "type": "object",
+          "required": ["color", "typography", "overall"],
+          "properties": {
+            "color": { "type": "number", "minimum": 0, "maximum": 1 },
+            "typography": { "type": "number", "minimum": 0, "maximum": 1 },
+            "overall": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "source": {
+          "type": "object",
+          "required": ["board_slug", "image_count"],
+          "properties": {
+            "board_slug": { "type": "string" },
+            "image_count": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}
