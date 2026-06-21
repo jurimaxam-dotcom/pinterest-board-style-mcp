@@ -6,17 +6,20 @@ NUR Python-Standardbibliothek (kein pip, kein OAuth). Spricht das MCP-Protokoll
 (stdout ist reserviert fuer das Protokoll!).
 
 Tool: get_board_style(board_url, [max_images])
-  -> laedt die letzten <=25 Pins eines OEFFENTLICHEN Boards via RSS nach .cache/<slug>/
-     und gibt Claude den Pfad + eine fertige Analyse-Anweisung zurueck. Claude liest die
-     Bilder dann selbst (Read-Tool) und leitet daraus einen Style (DTCG-Tokens + Brief) ab.
-     Loest genau den Schmerz: kein manuelles Bilder-Runterladen, kein Claude-Erklaeren.
+  -> laedt die letzten <=25 Pins eines OEFFENTLICHEN Boards via RSS und gibt sie INLINE als
+     Bild-Content-Bloecke (base64) + eine Analyse-Anweisung zurueck. Dadurch "sieht" Claude die
+     Bilder direkt -> funktioniert in Claude Code UND Claude Desktop (kein Read-Tool noetig).
+     Loest den Schmerz: kein manuelles Bilder-Runterladen, kein Claude-Erklaeren.
+
+Bildgroesse: 400x300 (klein) -> moderater Payload, fuer Farb-/Mood-/Style-Analyse voellig genug.
 
 Global registrieren (projektuebergreifend):
     claude mcp add board-style -- python3 /ABS/PFAD/scripts/mcp_server.py
-oder via committed .mcp.json, wenn dieses Repo das Arbeitsverzeichnis ist.
+oder via committed .mcp.json (Claude Code), bzw. claude_desktop_config.json (Desktop).
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -27,16 +30,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_board as fb  # noqa: E402  (lokaler Import erst nach sys.path-Fix moeglich)
 
 SERVER_NAME = "pinterest-board-style"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.2.0"
 DEFAULT_PROTOCOL = "2024-11-05"
+IMAGE_SIZE = "400x300"               # kleine i.pinimg-Variante -> moderater Payload
+CACHE_ROOT = Path.home() / ".cache" / "pinterest-board-style"  # immer schreibbar (auch in Desktop)
 
-INSTRUCTION = """Ich habe die {count} Bilder des Pinterest-Boards "{slug}" heruntergeladen nach:
-  {cache}
-
-Lies ALLE diese Bilder mit dem Read-Tool (sie sind nummeriert):
-{files}
-
-Leite daraus GEMEINSAM einen wiederverwendbaren Design-Style ab (nicht je Bild einzeln):
+INSTRUCTION = """Die folgenden {count} Bilder sind das Pinterest-Board "{slug}" (Originale liegen lokal in {cache}).
+Analysiere sie GEMEINSAM und leite einen wiederverwendbaren Design-Style ab (nicht je Bild einzeln):
 - Farben: dominante Hex-Werte in Rollen (background, surface, text, primary, accent, muted) + palette nach Dominanz.
 - Mehrheitsentscheidung ueber alle Bilder fuer mood, era, temperature (warm/cool/neutral), saturation, contrast, density.
 - Ausreisser (Stilbruch/Fremdfarbe) SEPARAT halten, nicht in die Aggregation einrechnen.
@@ -57,49 +57,50 @@ def log(*a):
 
 # ------------------------------------------------------------------ Tool-Logik
 
-def fetch_to_cache(board_url: str, max_images: int):
-    """RSS -> Bilder nach .cache/<slug>/ (still; nutzt nur nicht-druckende fb-Funktionen)."""
-    rss_url, slug = fb.derive_rss_and_slug(board_url)
-    items = fb.parse_items(fb.http_get(rss_url, max_bytes=5_000_000))
-    if not items:
-        raise fb.FetchError("Keine Bild-Pins gefunden — ist das Board oeffentlich und die URL korrekt?")
-    out_dir = (Path.cwd() / ".cache" / slug)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    saved = []
-    for it in items:
-        if len(saved) >= max_images:
-            break
-        dest = out_dir / f"{len(saved) + 1:02d}.jpg"
-        try:
-            fb.download_one(it["image_url_raw"], "1200x", dest)  # still, kein stdout
-        except fb.FetchError as e:
-            log("skip image:", e)
-            continue
-        saved.append(str(dest.resolve()))
-    if len(saved) < 3:
-        raise fb.FetchError(f"Nur {len(saved)} Bilder ladbar (<3) — zu wenig Signal fuer einen Style.")
-    return slug, out_dir.resolve(), saved
-
-
 def tool_get_board_style(args: dict):
     board_url = (args or {}).get("board_url")
     if not isinstance(board_url, str) or not board_url.strip():
         raise ValueError("Parameter 'board_url' (string) fehlt.")
     max_images = int((args or {}).get("max_images") or 25)
-    slug, cache_dir, paths = fetch_to_cache(board_url.strip(), max_images)
-    files = "\n".join(f"  - {p}" for p in paths)
-    text = INSTRUCTION.format(count=len(paths), slug=slug, cache=cache_dir, files=files)
-    return [{"type": "text", "text": text}]
+
+    rss_url, slug = fb.derive_rss_and_slug(board_url.strip())
+    items = fb.parse_items(fb.http_get(rss_url, max_bytes=5_000_000))
+    if not items:
+        raise fb.FetchError("Keine Bild-Pins gefunden — ist das Board oeffentlich und die URL korrekt?")
+
+    out_dir = CACHE_ROOT / slug
+    out_dir.mkdir(parents=True, exist_ok=True)
+    blobs = []
+    for it in items:
+        if len(blobs) >= max_images:
+            break
+        url = fb.upgrade_image_url(it["image_url_raw"], IMAGE_SIZE)
+        try:
+            data = fb.http_get(url, binary=True)
+        except fb.FetchError as e:
+            log("skip image:", e)
+            continue
+        (out_dir / f"{len(blobs) + 1:02d}.jpg").write_bytes(data)
+        blobs.append(data)
+    if len(blobs) < 3:
+        raise fb.FetchError(f"Nur {len(blobs)} Bilder ladbar (<3) — zu wenig Signal fuer einen Style.")
+
+    intro = {"type": "text", "text": INSTRUCTION.format(count=len(blobs), slug=slug, cache=out_dir)}
+    images = [
+        {"type": "image", "data": base64.b64encode(d).decode("ascii"), "mimeType": "image/jpeg"}
+        for d in blobs
+    ]
+    return [intro] + images
 
 
 TOOLS = [
     {
         "name": "get_board_style",
         "description": (
-            "Laedt die Bilder eines OEFFENTLICHEN Pinterest-Boards (letzte <=25 Pins, via RSS, "
-            "keine Auth/keine Keys) herunter und gibt eine fertige Analyse-Anweisung zurueck, "
-            "sodass Claude daraus einen wiederverwendbaren Design-Style (DTCG-Tokens + Brief) "
-            "ableitet und als Referenz fuer das aktuelle Projekt nutzt. "
+            "Holt die Bilder eines OEFFENTLICHEN Pinterest-Boards (letzte <=25 Pins, via RSS, "
+            "keine Auth/keine Keys) und gibt sie INLINE als Bilder + eine Analyse-Anweisung zurueck, "
+            "sodass Claude daraus einen wiederverwendbaren Design-Style (DTCG-Tokens + Brief) ableitet "
+            "und als Referenz fuers aktuelle Projekt nutzt. "
             "Eingabe: eine Board-URL wie https://www.pinterest.com/<user>/<board>/."
         ),
         "inputSchema": {
