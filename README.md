@@ -1,62 +1,100 @@
-# Pinterest Board → Claude Style
+# Pinterest Board → Claude Style (MCP)
 
-Verwandle ein **Pinterest-Board** in eine wiederverwendbare **Design-Style-Vorlage**
-(DTCG `tokens.json` + Style-Brief), an der sich Claude Code / Claudes Design-Fähigkeit
-beim Bauen orientiert.
+Verwandle ein **öffentliches Pinterest-Board** in eine wiederverwendbare **Design-Style-Vorlage**
+(W3C-DTCG `tokens.json` + Style-Brief), die Claude direkt als Referenz beim Bauen nutzt.
 
-> **Status: v1-Prototyp (in Entwicklung).** Dieser erste Schritt validiert den wertvollen
-> Teil — *Board-Bilder → valider Style* — über den öffentlichen Board-RSS-Feed, **bevor**
-> OAuth/MCP gebaut wird.
+**Zero-Auth. Zero-Install. Nur Python-stdlib.** Kein Pinterest-Account-Login, keine API-Keys,
+keine `pip install`. Du machst dein Board öffentlich (ein Toggle) — fertig.
 
-## Idee
+## Das Problem, das es löst
 
-Du pflegst ein Board als Moodboard. Statt den Stil mühsam in Worte zu fassen, liest Claude
-die Board-Bilder, analysiert sie gemeinsam und destilliert daraus reproduzierbare
-Design-Tokens (Farben, Typografie-Gefühl, Spacing-Charakter, Mood) im **W3C-DTCG-Format**.
+Du baust gerade etwas und willst den Look eines Pinterest-Boards als Style-Referenz. Bisher:
+jedes Bild einzeln runterladen und Claude erklären, was es damit tun soll. **Mit diesem MCP:**
+ein Satz — *„erstell mir einen Style aus diesem Board"* — und Claude holt die Bilder, analysiert
+sie und nutzt den Style direkt für dein Projekt.
 
-## Wie es funktioniert (v1)
+## Quick Start
 
-1. **Fetch** — Board-`.rss`-Feed (`…/<user>/<board>.rss`) liefert die letzten ~20 Pins ohne OAuth.
-2. **Bilder** — Pin-Bilder herunterladen, auf Vision-Größe resizen (≤ 2576 px lange Kante).
-3. **Analyse** — Skill `board-style-extractor` gibt alle Bilder gemeinsam an Claudes Vision,
-   aggregiert (Mehrheitsfarben, Dominanz, Ausreißer separat).
-4. **Output** — valider DTCG-`tokens.json` + kurzer Style-Brief.
+**Voraussetzung:** Python 3 (auf macOS/Linux vorinstalliert) + Claude Code (oder Desktop).
 
-## Roadmap
+```bash
+git clone <dieses-repo> pinterest-board-style
+cd pinterest-board-style
 
-- **v1 (jetzt):** RSS-Prototyp + `board-style-extractor`-Skill → Style-Qualität validieren.
-- **v2:** offizielle Pinterest-API v5 + lokales OAuth (Trial-Tier reicht fürs **eigene** Konto, kein Video-Review).
-- **v3:** lokaler MCP-Server (`.mcp.json` im Repo) → „clone & go", Claude zieht Boards selbst.
+# Global registrieren -> in JEDEM Projekt verfügbar:
+claude mcp add board-style -- python3 "$(pwd)/scripts/mcp_server.py"
+```
 
-## Eigene Boards (Auth-Modell)
+*(Alternativ: einfach dieses Repo in Claude Code öffnen — die mitgelieferte `.mcp.json`
+registriert den Server automatisch, solange das Repo dein Arbeitsverzeichnis ist.)*
 
-Gedacht für **deine selbst erstellten Boards**. Ab v2 legt jede:r eine eigene kostenlose
-Pinterest-App an; OAuth läuft lokal, Trial-Tier genügt fürs eigene Konto — **kein**
-Pinterest-Standard-Access / Video-Review nötig.
+Dann in **irgendeinem** Chat:
+
+> „Erstell mir einen Style aus diesem Pinterest-Board: `https://www.pinterest.com/<user>/<board>/`
+> und benutz ihn für die App, die ich gerade baue."
+
+Claude ruft das Tool `get_board_style` auf → lädt die Bilder → liest sie → erzeugt
+DTCG-Tokens + Style-Brief → designt damit weiter.
+
+## Wie es funktioniert
+
+```
+Board-URL  ──►  MCP get_board_style  ──►  .rss (≤25 Pins, keine Auth)  ──►  Bilder nach .cache/
+                                                                                    │
+   Claude liest die Bilder (Vision)  ◄───────────────────────────────────────────  ┘
+                     │
+                     ▼
+   tokens.json (DTCG: Farben/Radius/$extensions)  +  style.md (Vibe + Do/Don't)
+                     │
+                     ▼
+   Claude nutzt den Style als Referenz fürs aktuelle Projekt
+```
+
+Die Analyse erkennt **Marken-/Ad-Overlays** (Logos, CTA-Leisten) als Chrome und schließt sie aus,
+hält **Ausreißer-Bilder** separat und aggregiert per Mehrheit über alle Bilder.
+
+## Grenzen (ehrlich)
+
+- **Nur öffentliche Boards.** Privat → klarer Fehler. (Privat-Support via optionalem OAuth: siehe
+  `docs/superpowers/specs/v2-oauth-api.md` — bewusst nicht Pflicht, um „clone & läuft" zu wahren.)
+- **Die neuesten ~25 Pins**, nicht kuratiert. Tipp: ein **eigenes Board mit ≤25 gezielten Pins**
+  anlegen — genau der Sweet Spot für ein Design-Moodboard.
+
+## Zwei Wege, es zu nutzen
+
+| Weg | Wann | Verfügbar |
+|---|---|---|
+| **MCP** (`get_board_style`) | überall, projektübergreifend, autonom | jedes Projekt + Claude Desktop |
+| **Skill** `board-style-extractor` | wenn *dieses* Repo dein Arbeitsverzeichnis ist | Claude Code (auto-load) |
+
+Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselbe DTCG-Schema.
 
 ## Struktur
 
 ```
 .
-├── docs/                         # Recherche, Architektur, Brainstorming
-│   └── research/                 # Scout-Report (Markt, API, Patterns)
-├── scripts/                      # RSS-Fetcher (v1) — folgt
+├── scripts/
+│   ├── fetch_board.py        # RSS-Fetcher (stdlib): Board → .cache/<slug>/ + manifest.json
+│   ├── mcp_server.py         # stdio-MCP-Server (stdlib): Tool get_board_style
+│   └── validate_tokens.py    # DTCG-Validator (stdlib)
 ├── .claude/skills/
-│   └── board-style-extractor/    # Style-Extraktions-Skill — folgt
-└── examples/                     # Beispiel-Outputs (tokens.json) — folgt
+│   └── board-style-extractor/  # Skill (SKILL.md + dtcg.schema.json)
+├── .mcp.json                 # Auto-Registrierung bei offenem Repo
+├── examples/                 # Beispiel-Outputs (tokens.json + style.md)
+└── docs/                     # Recherche, Specs (inkl. optionaler OAuth-Pfad)
 ```
 
-## Status der Komponenten
+## Komponenten
 
 | Komponente | Status |
 |---|---|
-| Scout-Recherche | ✅ `docs/research/` |
-| Architektur-Entscheidung (RSS-first) | ✅ |
-| Datenfluss + Extraktions-Schema | 🔄 Brainstorming |
-| RSS-Fetcher | ⬜ geplant |
-| `board-style-extractor`-Skill | ⬜ geplant |
+| RSS-Fetcher (`fetch_board.py`) | ✅ |
+| Skill `board-style-extractor` (+ DTCG-Schema) | ✅ |
+| DTCG-Validator (`validate_tokens.py`) | ✅ |
+| **stdio-MCP-Server (`mcp_server.py`)** | ✅ |
+| Beispiel-Läufe (`examples/`) | ✅ Home Depot + kvdwerf/meubels |
+| Optionaler OAuth-Pfad (private Boards) | 📄 spezifiziert, nicht Pflicht |
 
 ---
 
-*Kein offizielles Pinterest- oder Anthropic-Projekt. Nutzt öffentliche Board-RSS-Feeds bzw.
-ab v2 die offizielle Pinterest-API mit deinem eigenen Account.*
+*Kein offizielles Pinterest- oder Anthropic-Projekt. Nutzt den öffentlichen Board-RSS-Feed.*
