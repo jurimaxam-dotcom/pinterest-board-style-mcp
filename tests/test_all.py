@@ -18,6 +18,7 @@ import mcp_server as srv           # noqa: E402
 
 FIXTURE = (REPO / "tests" / "fixtures" / "board.rss").read_text(encoding="utf-8")
 GOOD_TOKENS = REPO / "examples" / "homedepot-bath-ideas-and-inspiration.tokens.json"
+RICH_TOKENS = REPO / "tests" / "fixtures" / "rich.tokens.json"
 
 
 class TestUrlDerivation(unittest.TestCase):
@@ -92,6 +93,44 @@ class TestValidator(unittest.TestCase):
     def test_missing_role_fails(self):
         del self.doc["color"]["primary"]
         self.assertTrue(vt.validate(self.doc))
+
+
+class TestValidatorRichFields(unittest.TestCase):
+    """Stufe-1-Felder sind additiv/optional: vorhanden -> validiert; fehlend -> egal."""
+    def setUp(self):
+        self.doc = json.loads(RICH_TOKENS.read_text(encoding="utf-8"))
+
+    def test_rich_tokens_pass(self):
+        self.assertEqual(vt.validate(self.doc), [])
+
+    def test_minimal_tokens_without_rich_fields_still_pass(self):
+        self.assertEqual(vt.validate(json.loads(GOOD_TOKENS.read_text(encoding="utf-8"))), [])
+
+    def test_bad_accent_hex_fails(self):
+        self.doc["$extensions"]["boardStyle"]["accentPalette"][0]["$value"] = "xyz"
+        self.assertTrue(vt.validate(self.doc))
+
+    def test_bad_motif_role_fails(self):
+        self.doc["$extensions"]["boardStyle"]["motifs"][0]["uiRole"] = "bogus"
+        self.assertTrue(vt.validate(self.doc))
+
+    def test_bad_image_role_fails(self):
+        self.doc["$extensions"]["boardStyle"]["imageRoles"]["01"] = ["not-a-role"]
+        self.assertTrue(vt.validate(self.doc))
+
+    def test_bad_webfont_role_fails(self):
+        self.doc["$extensions"]["boardStyle"]["webfonts"][0]["role"] = "footer"
+        self.assertTrue(vt.validate(self.doc))
+
+    def test_bad_edgecolor_hex_fails(self):
+        self.doc["$extensions"]["boardStyle"]["edgeColors"]["01"]["top"] = "nope"
+        self.assertTrue(vt.validate(self.doc))
+
+
+class TestInstructionRichFields(unittest.TestCase):
+    def test_instruction_requests_new_fields(self):
+        for kw in ("accentPalette", "webfonts", "motifs", "imageRoles", "edgeColors"):
+            self.assertIn(kw, srv.INSTRUCTION, f"INSTRUCTION verlangt '{kw}' nicht")
 
 
 class TestMcpProtocol(unittest.TestCase):

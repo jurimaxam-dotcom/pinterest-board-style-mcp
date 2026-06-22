@@ -41,14 +41,25 @@ Analysiere sie GEMEINSAM und leite einen wiederverwendbaren Design-Style ab (nic
 - Mehrheitsentscheidung ueber alle Bilder fuer mood, era, temperature (warm/cool/neutral), saturation, contrast, density.
 - Ausreisser (Stilbruch/Fremdfarbe) SEPARAT halten, nicht in die Aggregation einrechnen.
 - Marken-/Ad-Overlays (Logos, CTA-Leisten, Werbe-Headlines) sind Chrome, NICHT der Style -> ausschliessen.
-- Typografie nur inferiert (niedrige confidence), keine Fontnamen erfinden.
+- Typografie nur inferiert: 2-3 BEST-MATCH-Webfonts (Google Fonts + System-Stack) mit CSS-Fallback-Stack
+  und confidence — KEINE erfundenen Fontnamen.
+- Auffaellige Einzelfarben/-motive als Akzent-/Wuerze-Palette SEPARAT mitfuehren (sparsam einsetzbar),
+  statt sie nur als Ausreisser zu verwerfen.
+- Form/Material: Kantenschaerfe -> radius, Materialitaet -> shadow/Textur, Bilddichte -> density.
+- Gegenstaendliche Motive (Planet, Wiese, Rakete, Bogen) als Inventar je mit kurzer Beschreibung und
+  vorgeschlagener UI-Rolle (background | decoration | component-shape).
+- Jedes Bild nach Einbettungs-Rolle klassifizieren und seine Randfarben oben/unten sampeln.
 
 Gib aus:
-1) DTCG-tokens.json: color.* ($value Hex, $type "color"), radius.base, und $extensions.boardStyle
-   (mood, era, temperature, saturation, contrast, density, typography, outliers, confidence, source).
+1) DTCG-tokens.json: color.* ($value Hex, $type "color"), radius.base, und $extensions.boardStyle mit
+   mood, era, temperature, saturation, contrast, density, typography, outliers, confidence, source PLUS
+   additiv: webfonts[{role(heading|body), family, stack, confidence}], accentPalette[{$value, name, usage}],
+   shadow{style(crisp|soft|none), note}, motifs[{name, description, uiRole}], imageRoles{"NN":
+   [hero-bg|bleed-band|focal|texture|wall|atmosphere]}, edgeColors{"NN": {top, bottom}} (Hex je Bild-Nr).
 2) einen kurzen Style-Brief: Vibe-Absatz + Do/Don't-Direktiven + Palette.
 
-Nutze diesen Style anschliessend als Referenz fuer das, was im aktuellen Projekt gebaut wird."""
+Daraus baut scripts/build_style_skill.py ein portables Style-Skill (Tokens + Bilder) fuer Claude
+Code/Desktop. Nutze den Style als Referenz fuer das, was im aktuellen Projekt gebaut wird."""
 
 
 def log(*a):

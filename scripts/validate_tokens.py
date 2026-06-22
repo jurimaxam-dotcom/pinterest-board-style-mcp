@@ -22,6 +22,10 @@ ENUMS = {
     "contrast": {"low", "medium", "high"},
     "density": {"airy", "balanced", "dense"},
 }
+# Stufe-1-Erweiterung: additive, OPTIONALE Felder (nur validiert, wenn vorhanden).
+UI_ROLES = {"background", "decoration", "component-shape"}
+IMAGE_ROLES = {"hero-bg", "bleed-band", "focal", "texture", "wall", "atmosphere"}
+FONT_ROLES = {"heading", "body"}
 
 
 def _color_token(t, errs, where):
@@ -86,7 +90,62 @@ def validate(doc) -> list[str]:
         typo = bs.get("typography")
         if not (isinstance(typo, dict) and "classification" in typo):
             errs.append("boardStyle.typography{classification,...} fehlt")
+        _validate_rich_fields(bs, errs)
     return errs
+
+
+def _validate_rich_fields(bs: dict, errs: list[str]) -> None:
+    """Additive Stufe-1-Felder: nur pruefen, wenn vorhanden (fehlend ist erlaubt)."""
+    acc = bs.get("accentPalette")
+    if acc is not None:
+        if not isinstance(acc, list):
+            errs.append("boardStyle.accentPalette muss eine Liste sein")
+        else:
+            for i, a in enumerate(acc):
+                _color_token(a, errs, f"boardStyle.accentPalette[{i}]")
+
+    wf = bs.get("webfonts")
+    if wf is not None:
+        if not isinstance(wf, list):
+            errs.append("boardStyle.webfonts muss eine Liste sein")
+        else:
+            for i, w in enumerate(wf):
+                if not isinstance(w, dict) or w.get("role") not in FONT_ROLES:
+                    errs.append(f"boardStyle.webfonts[{i}].role nicht in {sorted(FONT_ROLES)}")
+                elif not isinstance(w.get("stack") or w.get("family"), str):
+                    errs.append(f"boardStyle.webfonts[{i}] braucht stack/family (string)")
+
+    mo = bs.get("motifs")
+    if mo is not None:
+        if not isinstance(mo, list):
+            errs.append("boardStyle.motifs muss eine Liste sein")
+        else:
+            for i, m in enumerate(mo):
+                if not (isinstance(m, dict) and "name" in m and m.get("uiRole") in UI_ROLES):
+                    errs.append(f"boardStyle.motifs[{i}] braucht name + uiRole in {sorted(UI_ROLES)}")
+
+    ir = bs.get("imageRoles")
+    if ir is not None:
+        if not isinstance(ir, dict):
+            errs.append("boardStyle.imageRoles muss ein Objekt sein")
+        else:
+            for k, roles in ir.items():
+                if not isinstance(roles, list) or any(r not in IMAGE_ROLES for r in roles):
+                    errs.append(f"boardStyle.imageRoles[{k}] hat unbekannte Rolle (erlaubt: {sorted(IMAGE_ROLES)})")
+
+    ec = bs.get("edgeColors")
+    if ec is not None:
+        if not isinstance(ec, dict):
+            errs.append("boardStyle.edgeColors muss ein Objekt sein")
+        else:
+            for k, v in ec.items():
+                if not isinstance(v, dict):
+                    errs.append(f"boardStyle.edgeColors[{k}] muss {{top,bottom}} sein")
+                    continue
+                for pos in ("top", "bottom"):
+                    val = v.get(pos)
+                    if not (isinstance(val, str) and HEX.match(val)):
+                        errs.append(f"boardStyle.edgeColors[{k}].{pos} ist kein Hex: {val!r}")
 
 
 def main(argv=None) -> int:
