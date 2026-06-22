@@ -28,10 +28,13 @@ Die Token-Daten sind **Sprungbrett, nicht Käfig**. Das Skill ermutigt Claude:
   zu nutzen — Ausreißer sind hier ausdrücklich *erwünscht*, als optionale „Würze-Palette"
   mitgeführt statt weggeworfen;
 - **gegenständliche Motive/Objekte aus den Bildern** (Planet, Wiese, Rakete, eine Linienform,
-  ein Materialkontrast) aufzugreifen und sie als UI-Elemente **neu zu erschaffen und passend
-  einzubauen** — Wiese als Hintergrund, Rakete als Deko am Himmel, planetförmige Buttons usw.
-  Die Bilder dienen als visuelle Referenz; die Motive werden als **SVG/CSS neu gestaltet**,
-  nicht als Foto ausgeschnitten;
+  ein Materialkontrast) aufzugreifen und passend einzubauen — Wiese als Hintergrund, Rakete als
+  Deko am Himmel, planetförmige Buttons usw. Dafür zwei gleichwertige Wege, je nach Bild:
+  **(a)** das Original-Board-Bild **direkt als immersives, bleedendes Element** einbetten
+  (Hero-Background, full-bleed Pano-Band, atmosphärischer Layer) — die Bildränder lösen sich
+  per CSS-Gradient/Maske in den Seiten-Hintergrund auf, sodass das Foto in die Seite *hineinwächst*;
+  **(b)** das Motiv als **SVG/CSS neu gestalten**, wenn eine saubere, skalierbare Form gebraucht
+  wird (Button, Karten-Form, Spot-Illustration). Mischen ist erwünscht;
 - **iterativ und lange zu denken**: ansehen → entwerfen → gegen die Direktiven selbst
   kritisieren → verfeinern. Explorativ — „nicht gut → verbessern" ist eingeplant, kein Fehler.
 
@@ -41,8 +44,9 @@ Die Token-Daten sind **Sprungbrett, nicht Käfig**. Das Skill ermutigt Claude:
   klar als Inferenz markiert.
 - **Keine** Komponenten-Bibliothek / kein fertiger Code als Artefakt — das Skill *beschreibt*,
   Claude *baut* zur Laufzeit.
-- **Kein** Ausschneiden/Einbetten der Original-Fotos (Bildbearbeitung + Urheberrecht).
-  Motive werden als SVG/CSS **neu erschaffen**, die Bilder dienen nur als Referenz.
+- **Keine** aufwändige Bildbearbeitung/Compositing (Freistellen, Retusche). Original-Board-Bilder
+  dürfen direkt eingebettet werden — die Integration läuft nur über CSS (Masken, Gradienten,
+  `object-position`), nicht über Pixel-Editing der Bilder.
 - **Kein** Live-Netzzugriff beim Bauen (Board-Fetch passiert nur einmal bei der Erzeugung).
 - Der bestehende `tokens_to_ds.py` (Claude-Design-Import) bleibt unangetastet — dies ist ein
   zweiter Ausgabepfad daneben.
@@ -81,7 +85,13 @@ zusätzlich liefert (alles als `$extensions.boardStyle` im `tokens.json`):
 - **Motiv-/Objekt-Inventar**: konkret benannte gegenständliche Elemente aus den Bildern
   (z.B. „Planet", „Wiese", „Rakete", „Bogenfenster") je mit kurzer Beschreibung und einer
   **vorgeschlagenen UI-Rolle** (Hintergrund / Deko-Akzent / Komponenten-Form). Dient als
-  Material für die kreative Neu-Erschaffung in Stufe 3.
+  Material für Stufe 3.
+- **Bild-Rollen-Klassifikation** (je Board-Bild ≥1 Rolle, für die direkte Einbettung in Stufe 3):
+  `hero-bg` (weite Szene, edge-to-edge hinter Text), `bleed-band` (dramatisches Motiv als
+  full-bleed Divider), `focal` (Interieur/Produkt als gerahmte Karte), `texture` (Muster/Aufsicht
+  als Material-Swatch), `wall` (alles, für ein Masonry-Gitter), `atmosphere` (entsättigt, fixed
+  hinter der ganzen Seite). Plus je Bild die **Randfarben** oben/unten — für nahtlose
+  Gradient-Bleeds in die `--bg` (Stufe 3).
 
 ### Stufe 2 — Paket-Assembly (`scripts/build_style_skill.py`, neu)
 
@@ -99,7 +109,8 @@ examples/<slug>-style-skill/
     radius.css        # --radius-*
     spacing.css       # abgeleitete --space-* Scale
     shadow.css        # --shadow-* (aus Materialität)
-  images/             # die gebündelten Board-Bilder (aus dem Cache kopiert)
+  images/             # die gebündelten Board-Bilder, web-optimiert (≤1100px Längskante, JPEG q82) —
+                      #   direkt als Bleed-/Hero-/Pano-Element einbettbar; Randfarben in tokens.json
   README-INSTALL.md   # 3-Zeilen-Anleitung: wohin in Code / wie in Desktop
 ```
 
@@ -113,12 +124,19 @@ Qualitäts-Direktiven gegen templated Defaults. Alles Inferierte ist als solches
 1. die Bilder in `images/` **anzusehen** (nicht nur die Tokens lesen);
 2. **iterativ/lange zu denken**: erst Konzept, dann Entwurf;
 3. Kernpalette als Grund, **Akzente sparsam** aus der Würze-Palette;
-4. mindestens ein **Motiv aus dem Inventar als UI-Element neu zu erschaffen** (als SVG/CSS)
-   und passend einzubauen — gemäß der vorgeschlagenen UI-Rolle, z.B.:
-   - Szenen-Element (Wiese, Himmel, Wasser) → atmosphärischer **Hintergrund** (CSS-Gradient/SVG);
-   - Objekt (Rakete, Vogel) → **Deko-Akzent** (Spot-Illustration am Rand/Header);
-   - charakteristische Form (Planet, Bogen) → **Komponenten-Form** (planetförmiger Button,
-     Bogen-Karten-Oberkante);
+4. die Bilder **immersiv** zu nutzen statt sie nur in Karten zu rahmen — je nach Bild-Rolle
+   eines der beiden Verfahren oder eine Kombination:
+   - **Direkt einbetten & bleeden lassen** (Rollen `hero-bg`/`bleed-band`/`atmosphere`):
+     - Hero-Background edge-to-edge mit Gradient-Overlay (≥4 Stops, fading zur `--bg`) + `text-shadow`;
+     - full-bleed Pano-Band als Divider via `width:100vw; left:50%; transform:translateX(-50%)`,
+       oben+unten zur `--bg` ausgeblendet — kein harter Schnitt;
+     - atmosphärischer, fixed Layer (entsättigt, niedrige Opacity, radiale Maske) hinter der Seite;
+     - Bildränder per Gradient/Maske auf die in Stufe 1 gesampelten **Randfarben** auslaufen lassen;
+   - **Als SVG/CSS neu erschaffen** (wenn eine saubere, skalierbare Form gebraucht wird):
+     - Szenen-Element (Wiese, Himmel, Wasser) → atmosphärischer **Hintergrund** (CSS-Gradient/SVG);
+     - Objekt (Rakete, Vogel) → **Deko-Akzent** (Spot-Illustration am Rand/Header);
+     - charakteristische Form (Planet, Bogen) → **Komponenten-Form** (planetförmiger Button,
+       Bogen-Karten-Oberkante);
 5. den Entwurf **gegen die Do/Don't-Direktiven selbst zu kritisieren** und zu verfeinern.
 
 ## Verifikation
@@ -135,7 +153,10 @@ Qualitäts-Direktiven gegen templated Defaults. Alles Inferierte ist als solches
 - Jeder Test einmal **rot gesehen**, bevor grün.
 
 **Explorativ (durch Jay):** Skill in Claude Code/Desktop installieren, „bau eine Landingpage
-im Stil" → Qualität beurteilen. Iterieren.
+im Stil" → Qualität beurteilen. Iterieren. Beim Bauen prüft Claude die kritischen Sektionen per
+**Playwright-Screenshot**: Text über Fotos lesbar (Gradient + `text-shadow`), Bleed-Bänder oben/unten
+nahtlos (keine harte Kante), `object-position` zeigt den interessanten Bildausschnitt — und justiert
+Overlay-Opacity/Gradient-Stops anhand des Gesehenen nach.
 
 ## Offene Punkte (vor/während Implementierung zu klären)
 
