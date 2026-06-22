@@ -1,0 +1,69 @@
+{
+  "color": {
+    "$type": "color",
+    "background": { "$value": "#F1EFEA", "$description": "Off-White Seamless-Hintergrund. dominance 0.78" },
+    "surface":    { "$value": "#C7C5C0", "$description": "kuehles Beton-Hellgrau. dominance 0.45" },
+    "text":       { "$value": "#1F1E1C", "$description": "Mattschwarz. dominance 0.58" },
+    "primary":    { "$value": "#C7A876", "$description": "helles Naturholz. dominance 0.62" },
+    "accent":     { "$value": "#5E4632", "$description": "Walnuss/Dunkelholz. dominance 0.40" },
+    "muted":      { "$value": "#5F7A7C", "$description": "gedaempftes Petrol. dominance 0.18" },
+    "palette": {
+      "0": { "$value": "#F1EFEA", "$description": "Off-White. dominance 0.78" },
+      "1": { "$value": "#C7A876", "$description": "helles Naturholz. dominance 0.62" },
+      "2": { "$value": "#1F1E1C", "$description": "Mattschwarz. dominance 0.58" },
+      "3": { "$value": "#C7C5C0", "$description": "Beton-Hellgrau. dominance 0.45" }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "base": { "$value": "2px", "$description": "ueberwiegend scharfe, geometrische Kanten. confidence 0.6" }
+  },
+  "$extensions": {
+    "boardStyle": {
+      "mood": ["minimalist", "mid-century", "sculptural", "material-honest"],
+      "era": "Mid-Century-Modern x zeitgenoessisches skandinavisches Design",
+      "temperature": "neutral",
+      "saturation": "muted",
+      "contrast": "high",
+      "density": "airy",
+      "typography": {
+        "classification": "sans",
+        "weight": "light",
+        "case": "lowercase",
+        "formality": "understated-modern"
+      },
+      "webfonts": [
+        { "role": "heading", "family": "Work Sans", "stack": "'Work Sans', 'Helvetica Neue', Arial, sans-serif", "confidence": 0.45 },
+        { "role": "body", "family": "Inter", "stack": "Inter, system-ui, -apple-system, sans-serif", "confidence": 0.5 }
+      ],
+      "accentPalette": [
+        { "$value": "#B06A4E", "name": "Terracotta", "usage": "sparsamer Warm-Akzent fuer einzelne CTAs/Hover" },
+        { "$value": "#8C8A6E", "name": "Salbei/Olive", "usage": "vereinzelter Wandton; ruhiger Sekundaer-Akzent" }
+      ],
+      "texture": "matte Holzmaserung, pulverbeschichtetes Schwarz-Metall, roher Beton; low-gloss, taktil",
+      "imagery": "Produkt-/Studio-Fotografie auf neutralem Seamless + gestylte Interior-Vignetten",
+      "shadow": { "style": "crisp", "note": "harte, kurze Schlagschatten passend zu high-contrast + matten Oberflaechen" },
+      "motifs": [
+        { "name": "Wiese/Naturholz-Flaeche", "description": "warme Holzmaserung als grosse ruhige Flaeche", "uiRole": "background" },
+        { "name": "Hairpin-Bein", "description": "duenne schwarze Metalllinie, V-/A-Form", "uiRole": "decoration" },
+        { "name": "Trapez/A-Frame", "description": "geometrische schraege Kante", "uiRole": "component-shape" }
+      ],
+      "imageRoles": {
+        "01": ["hero-bg", "wall"],
+        "02": ["focal", "wall"],
+        "03": ["texture", "atmosphere", "wall"]
+      },
+      "edgeColors": {
+        "01": { "top": "#EDEAE3", "bottom": "#1F1E1C" },
+        "02": { "top": "#F1EFEA", "bottom": "#C7C5C0" },
+        "03": { "top": "#C7A876", "bottom": "#5E4632" }
+      },
+      "outliers": [
+        { "image": 12, "why": "grell-primaerfarbige Draht-Baenke — bricht die gedaempfte Palette" }
+      ],
+      "confidence": { "color": 0.7, "typography": 0.45, "overall": 0.6 },
+      "source": { "board_slug": "rich-demo", "image_count": 3 },
+      "notes": "Test-Fixture mit allen Stufe-1-Feldern (webfonts, accentPalette, motifs, imageRoles, edgeColors, shadow)."
+    }
+  }
+}
