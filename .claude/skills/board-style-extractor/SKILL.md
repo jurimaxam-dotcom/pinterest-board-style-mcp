@@ -26,6 +26,10 @@ Eine **Board-URL** ODER ein bereits gefuellter **`.cache/<slug>/`** (mit `manife
    - `examples/<slug>.style.md` — nach der Brief-Vorlage unten.
 6. **Validieren (Pflicht-Gate)**: `python3 scripts/validate_tokens.py examples/<slug>.tokens.json`.
    Muss „OK" liefern. Bei Fehlern: korrigieren und erneut — **nie** ein invalides File belassen.
+7. **Optional — portables Style-Skill bauen** (Ausgabepfad fuer Claude Code/Desktop statt
+   Claude-Design-Import): `python3 scripts/build_style_skill.py examples/<slug>.tokens.json
+   .cache/<slug> examples/<slug>-style-skill` → self-contained Skill-Ordner (SKILL.md,
+   `tokens/*.css`, `images/`). Reicher, wenn die additiven Stufe-1-Felder unten gesetzt sind.
 
 ## Analyse-Prompt (Rolle + Haltung)
 
@@ -64,6 +68,10 @@ Struktur **exakt** nach `dtcg.schema.json`:
 - `$extensions.boardStyle` — `mood[]`, `era`, `temperature`, `saturation`, `contrast`, `density`,
   `typography{classification,weight,case,formality}`, `texture`, `imagery`, `outliers[]`,
   `confidence{color,typography,overall}`, `source{board_slug,image_count}`.
+- **Additiv (optional, fuer den generativen Build-Pfad):** `webfonts[{role,family,stack,confidence}]`,
+  `accentPalette[{$value,name,usage}]`, `shadow{style,note}`, `motifs[{name,description,uiRole}]`,
+  `imageRoles{"NN":[hero-bg|bleed-band|focal|texture|wall|atmosphere]}`, `edgeColors{"NN":{top,bottom}}`.
+  Fehlen ist erlaubt — `validate_tokens.py` prueft sie nur, wenn vorhanden.
 
 ## Output 2 — `style.md` (Brief)
 

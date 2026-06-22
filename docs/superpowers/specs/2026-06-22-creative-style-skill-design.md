@@ -2,7 +2,10 @@
 
 **Datum:** 2026-06-22
 **Branch:** `feat/creative-style-skill`
-**Status:** Entwurf zur Review
+**Status:** Umgesetzt — Stufe 1–3 gebaut, `test.sh` 40 Tests grün. End-to-End-Lauf:
+`examples/kvdwerf-meubels-style-skill/` (Paket) + `examples/kvdwerf-meubels-demo/` (im Browser
+verifizierte immersive Demo). Offen: das Foto-Einbett-Verbot ist entfernt (Boards öffentlich),
+Bild-Bundling 24 Bilder ≈ 1,4 MB (vertretbar), Desktop-Skill-Loading noch nicht praktisch verifiziert.
 
 ## Problem
 
