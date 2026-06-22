@@ -21,6 +21,7 @@ import json
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -40,6 +41,33 @@ class FetchError(Exception):
     """Erwarteter, dem User erklaerbarer Fehler (klare Meldung statt Stacktrace)."""
 
 
+# Kurzlink-/Share-Hosts, die Pinterest auf eine Board-URL weiterleitet.
+SHORT_HOSTS = ("pin.it",)
+
+
+def is_short_url(url: str) -> bool:
+    """True fuer Pinterest-Kurzlinks (z.B. https://pin.it/abc), die erst aufgeloest werden muessen."""
+    host = urllib.parse.urlparse(url.strip()).netloc.lower()
+    return any(host == h or host.endswith("." + h) for h in SHORT_HOSTS)
+
+
+def resolve_short_url(url: str, *, timeout: int = 15, _opener=urllib.request.urlopen) -> str:
+    """Kurzlink dem Redirect folgen -> finale Pinterest-URL (ohne Query/Fragment).
+
+    `_opener` ist injizierbar (Tests); Default folgt Redirects via urllib automatisch.
+    """
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        with _opener(req, timeout=timeout) as resp:
+            final = resp.geturl()
+    except urllib.error.HTTPError as e:           # Redirect-Ziel ist auch bei Fehlercode bekannt
+        final = e.geturl()
+    except urllib.error.URLError as e:
+        raise FetchError(f"Kurzlink nicht aufloesbar ({url}): {e.reason}") from e
+    p = urllib.parse.urlsplit(final)
+    return urllib.parse.urlunsplit((p.scheme, p.netloc, p.path, "", ""))
+
+
 def derive_rss_and_slug(board_url: str):
     """Board-URL oder fertige .rss-URL -> (rss_url, slug)."""
     url = board_url.strip().rstrip("/")
@@ -47,6 +75,11 @@ def derive_rss_and_slug(board_url: str):
         rss_url, path = url, url[:-4]
     else:
         rss_url, path = url + ".rss", url
+    if re.search(r"pinterest\.com/pin/", path):
+        raise FetchError(
+            "Das ist ein einzelner Pin, kein Board — bitte die Board-URL teilen "
+            "(.../<user>/<board>/): " + board_url
+        )
     m = re.search(r"pinterest\.com/([^/]+)/([^/]+)$", path)
     if not m:
         raise FetchError(
@@ -164,7 +197,11 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     try:
-        rss_url, slug = derive_rss_and_slug(args.board_url)
+        board_url = args.board_url.strip()
+        if is_short_url(board_url):
+            board_url = resolve_short_url(board_url)
+            print(f"Kurzlink aufgeloest -> {board_url}")
+        rss_url, slug = derive_rss_and_slug(board_url)
         print(f"RSS:  {rss_url}")
         print(f"slug: {slug}")
         items = parse_items(http_get(rss_url, max_bytes=5_000_000))

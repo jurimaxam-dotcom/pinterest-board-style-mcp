@@ -132,6 +132,44 @@ class TestInstructionRichFields(unittest.TestCase):
         for kw in ("accentPalette", "webfonts", "motifs", "imageRoles", "edgeColors"):
             self.assertIn(kw, srv.INSTRUCTION, f"INSTRUCTION verlangt '{kw}' nicht")
 
+    def test_render_instruction_survives_literal_braces(self):
+        # Regression: INSTRUCTION enthaelt literale JSON-{...} -> .format() crasht mit KeyError.
+        out = srv.render_instruction(7, "demo-board", "/cache/demo-board")
+        self.assertIn("7", out)
+        self.assertIn("demo-board", out)
+        self.assertIn("/cache/demo-board", out)
+        self.assertIn("webfonts", out)           # literale Klammern muessen ueberleben
+        self.assertNotIn("{count}", out)
+        self.assertNotIn("{slug}", out)
+        self.assertNotIn("{cache}", out)
+
+
+class TestShortUrl(unittest.TestCase):
+    def test_is_short_url_pinit(self):
+        self.assertTrue(fb.is_short_url("https://pin.it/7KaLebnvd"))
+
+    def test_full_board_url_not_short(self):
+        self.assertFalse(fb.is_short_url("https://www.pinterest.com/user/board/"))
+
+    def test_resolve_short_url_follows_and_strips_query(self):
+        class _Resp:
+            def __enter__(self_): return self_
+            def __exit__(self_, *a): return False
+            def geturl(self_): return "https://www.pinterest.com/kvdwerf/meubels/?utm_source=share"
+        out = fb.resolve_short_url("https://pin.it/x", _opener=lambda req, timeout=None: _Resp())
+        self.assertEqual(out, "https://www.pinterest.com/kvdwerf/meubels/")
+
+    def test_resolved_shortlink_then_derives_board(self):
+        rss, slug = fb.derive_rss_and_slug("https://www.pinterest.com/kvdwerf/meubels/")
+        self.assertEqual(slug, "kvdwerf-meubels")
+
+
+class TestPinLinkMessage(unittest.TestCase):
+    def test_single_pin_url_gives_clear_error(self):
+        with self.assertRaises(fb.FetchError) as ctx:
+            fb.derive_rss_and_slug("https://www.pinterest.com/pin/123456789/")
+        self.assertIn("Pin", str(ctx.exception))
+
 
 class TestMcpProtocol(unittest.TestCase):
     def test_initialize_echoes_protocol(self):

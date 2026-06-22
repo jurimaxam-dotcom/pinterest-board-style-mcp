@@ -66,6 +66,16 @@ def log(*a):
     print("[mcp_server]", *a, file=sys.stderr, flush=True)
 
 
+def render_instruction(count, slug, cache) -> str:
+    """INSTRUCTION mit den Laufzeitwerten fuellen — bewusst .replace statt .format,
+    weil INSTRUCTION literale JSON-{...} (Schema-Beispiele) enthaelt, die str.format als
+    Platzhalter missdeuten und mit KeyError abbrechen wuerde."""
+    return (INSTRUCTION
+            .replace("{count}", str(count))
+            .replace("{slug}", str(slug))
+            .replace("{cache}", str(cache)))
+
+
 # ------------------------------------------------------------------ Tool-Logik
 
 def tool_get_board_style(args: dict):
@@ -73,8 +83,14 @@ def tool_get_board_style(args: dict):
     if not isinstance(board_url, str) or not board_url.strip():
         raise ValueError("Parameter 'board_url' (string) fehlt.")
     max_images = int((args or {}).get("max_images") or 25)
+    url = board_url.strip()
+    log("get_board_style:", url, f"(max_images={max_images})")
+    if fb.is_short_url(url):
+        url = fb.resolve_short_url(url)
+        log("Kurzlink aufgeloest ->", url)
 
-    rss_url, slug = fb.derive_rss_and_slug(board_url.strip())
+    rss_url, slug = fb.derive_rss_and_slug(url)
+    log("RSS:", rss_url, "| slug:", slug)
     items = fb.parse_items(fb.http_get(rss_url, max_bytes=5_000_000))
     if not items:
         raise fb.FetchError("Keine Bild-Pins gefunden — ist das Board oeffentlich und die URL korrekt?")
@@ -96,7 +112,8 @@ def tool_get_board_style(args: dict):
     if len(blobs) < 3:
         raise fb.FetchError(f"Nur {len(blobs)} Bilder ladbar (<3) — zu wenig Signal fuer einen Style.")
 
-    intro = {"type": "text", "text": INSTRUCTION.format(count=len(blobs), slug=slug, cache=out_dir)}
+    log(f"{len(blobs)} Bilder geladen -> Analyse-Anweisung gesendet.")
+    intro = {"type": "text", "text": render_instruction(len(blobs), slug, out_dir)}
     images = [
         {"type": "image", "data": base64.b64encode(d).decode("ascii"), "mimeType": "image/jpeg"}
         for d in blobs
