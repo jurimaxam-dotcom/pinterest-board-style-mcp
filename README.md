@@ -44,14 +44,24 @@ Board-URL  ──►  MCP get_board_style  ──►  .rss (≤25 Pins, keine Au
    Claude liest die Bilder (Vision)  ◄───────────────────────────────────────────  ┘
                      │
                      ▼
-   tokens.json (DTCG: Farben/Radius/$extensions)  +  style.md (Vibe + Do/Don't)
+   tokens.json (DTCG: Farben/Radius + Webfonts/Akzente/Motive/Bild-Rollen)  +  style.md
                      │
-                     ▼
-   Claude nutzt den Style als Referenz fürs aktuelle Projekt
+          ┌──────────┴────────────┐
+          ▼                        ▼
+   tokens_to_ds.py          build_style_skill.py
+   → Import in Claude        → portables Style-Skill (SKILL.md + tokens/*.css + images/)
+     Design                    für Claude Code & Desktop: „bau X im Stil dieses Boards"
 ```
 
 Die Analyse erkennt **Marken-/Ad-Overlays** (Logos, CTA-Leisten) als Chrome und schließt sie aus,
-hält **Ausreißer-Bilder** separat und aggregiert per Mehrheit über alle Bilder.
+hält **Ausreißer-Bilder** separat (als sparsame Akzent-/Würze-Palette) und aggregiert per Mehrheit
+über alle Bilder. Sie liefert zusätzlich **Best-Match-Webfonts**, ein **Motiv-Inventar** (Objekte aus
+den Bildern mit vorgeschlagener UI-Rolle) und eine **Bild-Rollen-Klassifikation** für immersive
+Einbettung (hero-bg, bleed-band, atmosphere, …).
+
+**Zwei Ausgabe-Pfade** ab demselben `tokens.json`: `tokens_to_ds.py` für den **Claude-Design-Import**,
+`build_style_skill.py` für ein **portables, generatives Style-Skill**, das beim Bauen den Stil anwendet —
+inklusive der gebündelten Board-Bilder als immersive Elemente.
 
 ## Grenzen (ehrlich)
 
@@ -87,7 +97,9 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 ├── scripts/
 │   ├── fetch_board.py        # RSS-Fetcher (stdlib, CLI): Board → ./.cache/<slug>/ + manifest.json
 │   ├── mcp_server.py         # stdio-MCP-Server (stdlib); Cache: ~/.cache/pinterest-board-style/
-│   └── validate_tokens.py    # Token-Validator (stdlib): Kern-Invarianten
+│   ├── validate_tokens.py    # Token-Validator (stdlib): Kern-Invarianten + Stufe-1-Felder
+│   ├── tokens_to_ds.py       # Adapter: tokens.json → Claude-Design-Import
+│   └── build_style_skill.py  # Adapter: tokens.json + Bilder → portables Style-Skill (Code/Desktop)
 ├── .claude/skills/
 │   └── board-style-extractor/  # Skill (SKILL.md + dtcg.schema.json = volles DTCG-Schema)
 ├── tests/                    # stdlib-Tests (kein Netz) + RSS-Fixture
@@ -103,9 +115,11 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 |---|---|
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
 | Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
-| Token-Validator (`validate_tokens.py`) — Kern-Invarianten, nicht volles JSON-Schema | ✅ |
-| **stdio-MCP-Server (`mcp_server.py`)** | ✅ |
-| Test-Gate (`./test.sh`, stdlib, kein Netz) | ✅ 19 Tests |
+| Token-Validator (`validate_tokens.py`) — Kern-Invarianten + optionale Stufe-1-Felder | ✅ |
+| **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) | ✅ |
+| Adapter Claude-Design-Import (`tokens_to_ds.py`) | ✅ |
+| **Adapter portables Style-Skill (`build_style_skill.py`)** — Tokens + Bilder → SKILL.md/CSS/images, byte-deterministisch | ✅ |
+| Test-Gate (`./test.sh`, stdlib, kein Netz) | ✅ 40 Tests |
 | Beispiel-Läufe (`examples/`) | ✅ Home Depot + kvdwerf/meubels |
 | Optionaler OAuth-Pfad (private Boards) | 📄 spezifiziert, nicht Pflicht |
 
