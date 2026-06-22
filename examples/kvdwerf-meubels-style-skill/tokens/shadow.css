@@ -1,0 +1,6 @@
+/* shadow.css — Elevation aus Materialitaet/Kontrast (style=crisp). matte low-gloss Oberflaechen (Holzmaserung, pulverbeschichtetes Schwarz-Metall) + high-contrast Studio-Setups -> harte, kurze Schlagschatten; nur skulpturale Bugholz-Shots zeigen weichere Verlaeufe */
+:root {
+  --shadow-sm: 0 1px 0 rgba(0,0,0,.18);
+  --shadow-md: 0 2px 4px rgba(0,0,0,.20);
+  --shadow-lg: 0 6px 12px rgba(0,0,0,.22);
+}

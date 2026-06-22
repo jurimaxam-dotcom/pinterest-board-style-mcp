@@ -38,6 +38,46 @@
       },
       "texture": "matte Holzmaserung (Eiche/Esche/Walnuss), pulverbeschichtetes schlankes Schwarz-Metall, roher Beton; low-gloss, material-honest, taktil",
       "imagery": "Produkt-/Studio-Fotografie auf neutralem Seamless + vereinzelt gestylte Interior-Vignetten; viel Negativraum, weiches Tageslicht",
+      "webfonts": [
+        { "role": "heading", "family": "Inter", "stack": "Inter, 'Helvetica Neue', Arial, sans-serif", "confidence": 0.45 },
+        { "role": "body", "family": "Work Sans", "stack": "'Work Sans', system-ui, -apple-system, sans-serif", "confidence": 0.4 }
+      ],
+      "accentPalette": [
+        { "$value": "#B06A4E", "name": "Terracotta", "usage": "sparsamer Warm-Akzent fuer einzelne CTAs/Hover (Wandton 09, Stuhllehne 06)" },
+        { "$value": "#5F7A7C", "name": "Petrol/Teal", "usage": "ruhiger Sekundaer-Akzent fuer Links/Badges (Wand 02)" },
+        { "$value": "#7A8C5E", "name": "Olive/Salbei", "usage": "vereinzelter Naturton; dezenter Tertiaer-Akzent (Wand 03)" }
+      ],
+      "shadow": { "style": "crisp", "note": "matte low-gloss Oberflaechen (Holzmaserung, pulverbeschichtetes Schwarz-Metall) + high-contrast Studio-Setups -> harte, kurze Schlagschatten; nur skulpturale Bugholz-Shots zeigen weichere Verlaeufe" },
+      "motifs": [
+        { "name": "Trapez/A-Frame-Silhouette", "description": "schraege, sich nach unten verjuengende geometrische Kante (Hocker 01, Stuehle 13/20/23)", "uiRole": "component-shape" },
+        { "name": "Schlanke Schwarz-Metall-Linie", "description": "duenne pulverbeschichtete Drahtkontur als Rahmen/Bein (04, 14, 16, 23)", "uiRole": "decoration" },
+        { "name": "Naturholz-Maserung", "description": "warme Eiche/Esche-Flaeche als grosse ruhige Materialflaeche", "uiRole": "background" },
+        { "name": "Bugholz-Lamellen", "description": "gestapelte gebogene Holzschichten, skulpturaler Schwung (19, 24)", "uiRole": "decoration" }
+      ],
+      "imageRoles": {
+        "01": ["focal", "wall"], "02": ["atmosphere", "wall"], "03": ["focal", "wall"],
+        "04": ["hero-bg", "atmosphere", "wall"], "05": ["focal", "wall"], "06": ["atmosphere", "wall"],
+        "07": ["focal", "wall"], "08": ["focal", "wall"], "09": ["atmosphere", "texture", "wall"],
+        "10": ["focal", "wall"], "11": ["atmosphere", "focal", "wall"], "12": ["focal", "wall"],
+        "13": ["bleed-band", "texture", "wall"], "14": ["focal", "wall"], "15": ["focal", "wall"],
+        "16": ["bleed-band", "atmosphere", "wall"], "17": ["hero-bg", "atmosphere", "wall"], "18": ["bleed-band", "focal", "wall"],
+        "19": ["hero-bg", "atmosphere", "wall"], "20": ["focal", "wall"], "21": ["bleed-band", "atmosphere", "wall"],
+        "22": ["texture", "focal", "wall"], "23": ["focal", "wall"], "24": ["focal", "wall"]
+      },
+      "edgeColors": {
+        "01": { "top": "#F4F3F0", "bottom": "#E9E7E2" }, "02": { "top": "#274A52", "bottom": "#A07D52" },
+        "03": { "top": "#8B9A6B", "bottom": "#C9C2B4" }, "04": { "top": "#EDECEA", "bottom": "#C2C0BC" },
+        "05": { "top": "#D8C9B8", "bottom": "#D8CDBE" }, "06": { "top": "#6E8494", "bottom": "#7E94A0" },
+        "07": { "top": "#CFCFCD", "bottom": "#D6D6D4" }, "08": { "top": "#E6E2DC", "bottom": "#E8E4DE" },
+        "09": { "top": "#B5704F", "bottom": "#9FA2A4" }, "10": { "top": "#C8C6C2", "bottom": "#BDB6AB" },
+        "11": { "top": "#C9C4BC", "bottom": "#8A8276" }, "12": { "top": "#F4F4F2", "bottom": "#F2F2F0" },
+        "13": { "top": "#D2D2D0", "bottom": "#7E7C7A" }, "14": { "top": "#EFEEEC", "bottom": "#ECEBE9" },
+        "15": { "top": "#EDEDEB", "bottom": "#E0DAD0" }, "16": { "top": "#6E5644", "bottom": "#8A6E54" },
+        "17": { "top": "#5A5044", "bottom": "#CFCDC9" }, "18": { "top": "#9FA0A2", "bottom": "#8E8A86" },
+        "19": { "top": "#787470", "bottom": "#C8C2BA" }, "20": { "top": "#EAE9E6", "bottom": "#E6E4DF" },
+        "21": { "top": "#D6CFC4", "bottom": "#C6BEB2" }, "22": { "top": "#8E7458", "bottom": "#6E5C4A" },
+        "23": { "top": "#E4E3E1", "bottom": "#C9C7C3" }, "24": { "top": "#E8E6E2", "bottom": "#E6E4DF" }
+      },
       "outliers": [
         { "image": 12, "why": "grell-primaerfarbige Draht-Baenke (Gruen/Rot) — bricht die gedaempfte Holz/Schwarz/Weiss-Palette" },
         { "image": 15, "why": "Transforming-Moebel in Primaerfarben (Blau/Gelb/Gruen/Rot/Lila) + Person — chromatischer & stilistischer Ausreisser" },

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kvdwerf — furniture atelier</title>
+
+<!-- Stufe-2-Output: die generierten Board-Tokens. Die @imports darin liefern --color-*, --font-*, --radius-*, --space-*, --shadow-*. -->
+<link rel="stylesheet" href="../kvdwerf-meubels-style-skill/styles.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* Demo-Ebene: nutzt die Board-Tokens als Sprungbrett. Display-Face bewusst auf
+     Bricolage Grotesque gehoben (Token-Heading 'Inter' war der generische Default). */
+  :root {
+    --display: 'Bricolage Grotesque', var(--font-heading);
+    --ink: var(--color-text);          /* #1F1E1C mattschwarz */
+    --paper: var(--color-background);  /* #F1EFEA off-white */
+    --oak: var(--color-primary);       /* #C7A876 helles holz */
+    --walnut: var(--color-accent);     /* #5E4632 walnuss */
+    --concrete: var(--color-surface);  /* #C7C5C0 beton */
+    --spark: var(--accent-0);          /* #B06A4E terracotta — EINZIGER farbakzent */
+    --rule: 1px solid var(--ink);      /* die schlanke schwarz-metall-linie */
+    --measure: 64rem;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap { width: min(100% - 2.5rem, var(--measure)); margin-inline: auto; }
+
+  /* Leitmotiv: ein durchgehender feiner Strich, der wie ein Metallbein die Seite gliedert. */
+  .eyebrow {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: .72rem;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: .7rem;
+    color: var(--walnut);
+  }
+  .eyebrow::before {
+    content: ""; width: 2.4rem; height: 1px; background: currentColor; display: inline-block;
+  }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: .98; letter-spacing: -.02em; margin: 0; text-transform: lowercase; }
+
+  /* ---------------------------------------------------------------- NAV */
+  .nav { position: absolute; top: 0; left: 0; right: 0; z-index: 4; }
+  .nav .wrap { display: flex; justify-content: space-between; align-items: center; padding-block: 1.5rem; }
+  .nav .logo { font-family: var(--display); font-weight: 800; font-size: 1.3rem; text-transform: lowercase; letter-spacing: -.03em; text-decoration: none; text-shadow: 0 1px 12px rgba(241,239,234,.65); }
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a { font-family: var(--font-body); font-weight: 500; font-size: .76rem; letter-spacing: .18em; text-transform: uppercase; text-decoration: none; opacity: .82; transition: opacity .18s ease; text-shadow: 0 1px 12px rgba(241,239,234,.65); }
+  .nav-links a:hover { opacity: 1; }
+
+  /* ---------------------------------------------------------------- HERO */
+  .hero { position: relative; min-height: 94vh; display: flex; align-items: flex-end; overflow: hidden; isolation: isolate; }
+  .hero-land { position: absolute; inset: 0; z-index: 0; }
+  .hero-land img { width: 100%; height: 100%; object-fit: cover; object-position: center 46%; }
+  /* Gradient-Bleed: oben fuer Lesbarkeit leicht abdunkeln, unten voll in --paper aufloesen.
+     Stops aus edgeColors[04] {top #EDECEA, bottom #C2C0BC} ueber Off-White gemischt. */
+  .hero-land::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      rgba(20,19,17,.34) 0%,
+      rgba(237,236,234,.10) 30%,
+      rgba(241,239,234,.28) 56%,
+      rgba(241,239,234,.86) 82%,
+      var(--paper) 100%);
+  }
+  .hero-content { position: relative; z-index: 2; padding-block: 0 clamp(2.5rem, 7vh, 6rem); }
+  .hero h1 {
+    font-size: clamp(2.8rem, 9vw, 7.6rem);
+    max-width: 14ch;
+    margin-top: .6rem;
+    text-shadow: 0 1px 24px rgba(241,239,234,.55), 0 1px 2px rgba(241,239,234,.7);
+  }
+  .hero h1 em { font-style: normal; color: var(--walnut); }
+  .hero-sub { max-width: 42ch; margin-top: 1.6rem; font-size: 1.05rem; color: #2c2a27; }
+  .hero .eyebrow { color: var(--ink); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .9rem; margin-top: 2rem; }
+  .btn {
+    font-family: var(--font-body); font-weight: 500; font-size: .92rem;
+    padding: .85rem 1.5rem; border-radius: var(--radius-base);
+    text-decoration: none; cursor: pointer; transition: transform .18s ease, background .18s ease, color .18s ease;
+    border: var(--rule);
+  }
+  .btn-solid { background: var(--ink); color: var(--paper); }
+  .btn-solid:hover { background: var(--spark); border-color: var(--spark); transform: translateY(-2px); }
+  .btn-ghost { background: transparent; color: var(--ink); }
+  .btn-ghost:hover { background: var(--ink); color: var(--paper); transform: translateY(-2px); }
+
+  /* ---------------------------------------------------------------- MANIFEST */
+  .manifest { position: relative; padding-block: clamp(5rem, 13vh, 10rem); overflow: hidden; }
+  /* atmosphere-Layer: entsaettigtes Board-Bild (19), sehr leise, radial ausmaskiert. */
+  .atmos { position: absolute; inset: 0; z-index: 0; opacity: .1; filter: grayscale(1) contrast(1.05); pointer-events: none;
+    -webkit-mask-image: radial-gradient(120% 80% at 80% 20%, #000 0%, transparent 70%);
+            mask-image: radial-gradient(120% 80% at 80% 20%, #000 0%, transparent 70%); }
+  .atmos img { width: 100%; height: 100%; object-fit: cover; }
+  .manifest .wrap { position: relative; z-index: 1; }
+  .manifest h2 { font-size: clamp(2rem, 5vw, 3.6rem); max-width: 18ch; }
+  .manifest p { max-width: 50ch; margin-top: 1.4rem; font-size: 1.15rem; color: #34322e; }
+
+  /* ---------------------------------------------------------------- COLLECTION */
+  .collection { padding-block: clamp(2rem, 6vh, 5rem) clamp(5rem, 12vh, 9rem); }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; border-top: var(--rule); padding-top: 1.1rem; margin-bottom: clamp(2rem, 5vh, 4rem); gap: 1rem; flex-wrap: wrap; }
+  .section-head h2 { font-size: clamp(1.6rem, 4vw, 2.6rem); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.2rem, 3vw, 2.5rem); }
+  .piece { display: flex; flex-direction: column; }
+  .piece-fig { margin: 0; aspect-ratio: 4/5; overflow: hidden; background: var(--concrete);
+    /* A-Frame/Trapez-Silhouette als Komponenten-Form (Motiv neu erschaffen, nicht Foto-Schnitt). */
+    clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
+    box-shadow: var(--shadow-md); transition: transform .22s ease, box-shadow .22s ease; }
+  .piece:hover .piece-fig { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+  .piece-fig img { width: 100%; height: 100%; object-fit: cover; }
+  .piece-meta { display: flex; justify-content: space-between; align-items: baseline; margin-top: 1.1rem; gap: 1rem; }
+  .piece h3 { font-size: 1.5rem; font-weight: 600; }
+  .piece .price { font-family: var(--font-body); font-weight: 500; font-size: .9rem; color: var(--walnut); white-space: nowrap; }
+  .piece .note { font-size: .95rem; color: #4a4742; margin-top: .35rem; max-width: 32ch; }
+
+  /* ---------------------------------------------------------------- PANO BLEED-BAND */
+  .pano { position: relative; width: 100vw; left: 50%; transform: translateX(-50%); height: 64vh; min-height: 420px; overflow: hidden; }
+  .pano img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%; }
+  /* edgeColors[21] {top #D6CFC4, bottom #C6BEB2} -> oben+unten in --paper ausblenden. */
+  .pano::before { content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, var(--paper) 0%, rgba(214,207,196,0) 26%, rgba(198,190,178,0) 64%, var(--paper) 100%); }
+  .pano-cap { position: absolute; z-index: 2; left: 0; right: 0; bottom: 12%; text-align: center; }
+  .pano-cap h2 { font-size: clamp(1.8rem, 5vw, 3.4rem); color: var(--ink); text-shadow: 0 1px 18px rgba(241,239,234,.6); }
+  .pano-cap .eyebrow { color: var(--walnut); }
+
+  /* ---------------------------------------------------------------- TEXTURE STRIP */
+  .grain { padding-block: clamp(5rem, 12vh, 9rem); }
+  .grain .wrap > .eyebrow { margin-bottom: 1.4rem; }
+  .grain h2 { font-size: clamp(1.6rem, 4vw, 2.6rem); margin-bottom: clamp(2rem, 5vh, 3.5rem); max-width: 16ch; }
+  .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+  .strip figure { margin: 0; aspect-ratio: 1; overflow: hidden; border: var(--rule); }
+  .strip img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; filter: saturate(.92); }
+  .strip figure:hover img { transform: scale(1.05); }
+
+  /* ---------------------------------------------------------------- FOOTER (inverted) */
+  footer { background: var(--ink); color: var(--paper); padding-block: clamp(4rem, 10vh, 7rem); }
+  footer .eyebrow { color: var(--oak); }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 3rem; align-items: end; }
+  footer h2 { font-size: clamp(2.2rem, 6vw, 4.5rem); color: var(--paper); margin-top: 1rem; }
+  .foot-side { display: flex; flex-direction: column; gap: 1.4rem; align-items: flex-start; }
+  .foot-mark { width: 96px; height: 96px; }
+  .foot-mark line, .foot-mark path { stroke: var(--oak); stroke-width: 3; fill: none; stroke-linecap: square; }
+  .foot-side a.btn { border-color: var(--paper); color: var(--paper); }
+  .foot-side a.btn:hover { background: var(--spark); border-color: var(--spark); color: var(--paper); }
+  .foot-fine { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid #3a3733; font-size: .82rem; color: #b8b3aa; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .8rem; }
+
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--spark); outline-offset: 3px; }
+
+  /* page-load reveal — sparsam, nur Hero */
+  .reveal { opacity: 0; transform: translateY(14px); animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+  .reveal.d1 { animation-delay: .08s; } .reveal.d2 { animation-delay: .18s; } .reveal.d3 { animation-delay: .3s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; transform: none; } }
+
+  /* ---------------------------------------------------------------- RESPONSIVE */
+  @media (max-width: 760px) {
+    .grid, .strip { grid-template-columns: 1fr; }
+    .strip { grid-template-columns: repeat(3, 1fr); }
+    .foot-grid { grid-template-columns: 1fr; gap: 2rem; align-items: start; }
+    .hero { min-height: 88vh; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <nav class="nav">
+      <div class="wrap">
+        <a class="logo" href="#">kvdwerf</a>
+        <div class="nav-links">
+          <a href="#collection">collection</a>
+          <a href="#visit">atelier</a>
+          <a href="#visit">contact</a>
+        </div>
+      </div>
+    </nav>
+    <div class="hero-land">
+      <img src="../kvdwerf-meubels-style-skill/images/04.jpg" alt="Blackened-steel lounge chair on raw concrete against an off-white wall">
+    </div>
+    <div class="wrap hero-content">
+      <span class="eyebrow reveal d1">kvdwerf — furniture atelier</span>
+      <h1 class="reveal d2">objects that admit <em>how</em> they're made</h1>
+      <p class="hero-sub reveal d3">Solid oak, blackened steel, bent ply. Each piece keeps its grain, its joints, and its own shadow — nothing veneered over.</p>
+      <div class="actions reveal d3">
+        <a class="btn btn-solid" href="#collection">See the collection</a>
+        <a class="btn btn-ghost" href="#visit">Visit the atelier</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="manifest">
+    <div class="atmos"><img src="../kvdwerf-meubels-style-skill/images/19.jpg" alt=""></div>
+    <div class="wrap">
+      <span class="eyebrow">the workshop position</span>
+      <h2>we don't hide the hand</h2>
+      <p>A joint should be legible. A leg should show where the load goes. We finish for touch, not for gloss — the grain stays the loudest thing in the room.</p>
+    </div>
+  </section>
+
+  <section class="collection" id="collection">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>the collection</h2>
+        <span class="eyebrow">made to order · 6–8 weeks</span>
+      </div>
+      <div class="grid">
+        <article class="piece">
+          <figure class="piece-fig"><img src="../kvdwerf-meubels-style-skill/images/01.jpg" alt="Steam-bent oak trestle stool"></figure>
+          <div class="piece-meta"><h3>trestle stool</h3><span class="price">€ 280</span></div>
+          <p class="note">Steam-bent oak, splayed like an A-frame. No hardware shows.</p>
+        </article>
+        <article class="piece">
+          <figure class="piece-fig"><img src="../kvdwerf-meubels-style-skill/images/17.jpg" alt="Oak and blackened-steel shelving"></figure>
+          <div class="piece-meta"><h3>line shelf</h3><span class="price">€ 740</span></div>
+          <p class="note">Blackened steel holds oak in tension — the frame is the drawing.</p>
+        </article>
+        <article class="piece">
+          <figure class="piece-fig"><img src="../kvdwerf-meubels-style-skill/images/20.jpg" alt="Minimal turned-wood chair on white"></figure>
+          <div class="piece-meta"><h3>spindle chair</h3><span class="price">€ 410</span></div>
+          <p class="note">Turned legs, a seat worn smooth by hand before it ships.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="pano" aria-label="Walnut chair under afternoon light">
+    <img src="../kvdwerf-meubels-style-skill/images/21.jpg" alt="Sculptural walnut chair in a sunlit arcade">
+    <div class="pano-cap">
+      <span class="eyebrow">no. 21 — walnut, bent</span>
+      <h2>under afternoon light</h2>
+    </div>
+  </section>
+
+  <section class="grain">
+    <div class="wrap">
+      <span class="eyebrow">in the grain</span>
+      <h2>three materials, kept honest</h2>
+      <div class="strip">
+        <figure><img src="../kvdwerf-meubels-style-skill/images/05.jpg" alt="Close detail of light oak"></figure>
+        <figure><img src="../kvdwerf-meubels-style-skill/images/13.jpg" alt="Detail of concrete and steel"></figure>
+        <figure><img src="../kvdwerf-meubels-style-skill/images/22.jpg" alt="Close detail of walnut grain"></figure>
+      </div>
+    </div>
+  </section>
+
+  <footer id="visit">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <span class="eyebrow">the atelier</span>
+          <h2>come see it in timber</h2>
+        </div>
+        <div class="foot-side">
+          <!-- Motiv neu erschaffen: A-frame / hairpin stool als reine Linienzeichnung. -->
+          <svg class="foot-mark" viewBox="0 0 100 100" role="img" aria-label="A-frame stool mark">
+            <line x1="20" y1="34" x2="80" y2="34"/>
+            <line x1="26" y1="34" x2="10" y2="92"/>
+            <line x1="74" y1="34" x2="90" y2="92"/>
+            <line x1="22" y1="64" x2="78" y2="64"/>
+          </svg>
+          <a class="btn" href="#">Book a workshop visit</a>
+        </div>
+      </div>
+      <div class="foot-fine">
+        <span>kvdwerf meubels · Rotterdam</span>
+        <span>Style derived from a Pinterest board via the board-style pipeline.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
