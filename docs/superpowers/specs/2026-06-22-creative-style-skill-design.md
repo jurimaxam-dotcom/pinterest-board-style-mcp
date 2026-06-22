@@ -25,9 +25,13 @@ einschließt.
 Die Token-Daten sind **Sprungbrett, nicht Käfig**. Das Skill ermutigt Claude:
 - die Daten zu interpretieren, zu erweitern, zu kombinieren — nicht nur Hex-Werte einzusetzen;
 - **auffällige Einzelelemente** (heute als Ausreißer ausgeschlossen) als sparsame **Akzente**
-  zu nutzen — sie werden als optionale „Würze-Palette" mitgeführt, nicht weggeworfen;
-- konkrete **visuelle Motive aus den Bildern** (eine Linienform, ein Materialkontrast)
-  aufzugreifen und gestalterisch auszubauen;
+  zu nutzen — Ausreißer sind hier ausdrücklich *erwünscht*, als optionale „Würze-Palette"
+  mitgeführt statt weggeworfen;
+- **gegenständliche Motive/Objekte aus den Bildern** (Planet, Wiese, Rakete, eine Linienform,
+  ein Materialkontrast) aufzugreifen und sie als UI-Elemente **neu zu erschaffen und passend
+  einzubauen** — Wiese als Hintergrund, Rakete als Deko am Himmel, planetförmige Buttons usw.
+  Die Bilder dienen als visuelle Referenz; die Motive werden als **SVG/CSS neu gestaltet**,
+  nicht als Foto ausgeschnitten;
 - **iterativ und lange zu denken**: ansehen → entwerfen → gegen die Direktiven selbst
   kritisieren → verfeinern. Explorativ — „nicht gut → verbessern" ist eingeplant, kein Fehler.
 
@@ -37,6 +41,8 @@ Die Token-Daten sind **Sprungbrett, nicht Käfig**. Das Skill ermutigt Claude:
   klar als Inferenz markiert.
 - **Keine** Komponenten-Bibliothek / kein fertiger Code als Artefakt — das Skill *beschreibt*,
   Claude *baut* zur Laufzeit.
+- **Kein** Ausschneiden/Einbetten der Original-Fotos (Bildbearbeitung + Urheberrecht).
+  Motive werden als SVG/CSS **neu erschaffen**, die Bilder dienen nur als Referenz.
 - **Kein** Live-Netzzugriff beim Bauen (Board-Fetch passiert nur einmal bei der Erzeugung).
 - Der bestehende `tokens_to_ds.py` (Claude-Design-Import) bleibt unangetastet — dies ist ein
   zweiter Ausgabepfad daneben.
@@ -72,7 +78,10 @@ zusätzlich liefert (alles als `$extensions.boardStyle` im `tokens.json`):
   als „sparsam einsetzbar" markiert (statt sie nur als Ausreißer zu verwerfen).
 - **Form-/Material-Hinweise**: Kantenschärfe → Radius, Materialität → Schatten/Textur,
   Liniencharakter → Border, Bilddichte → Spacing-Tendenz.
-- **Bildmotive**: kurze Liste konkret beschriebener visueller Elemente als Inspirationsanker.
+- **Motiv-/Objekt-Inventar**: konkret benannte gegenständliche Elemente aus den Bildern
+  (z.B. „Planet", „Wiese", „Rakete", „Bogenfenster") je mit kurzer Beschreibung und einer
+  **vorgeschlagenen UI-Rolle** (Hintergrund / Deko-Akzent / Komponenten-Form). Dient als
+  Material für die kreative Neu-Erschaffung in Stufe 3.
 
 ### Stufe 2 — Paket-Assembly (`scripts/build_style_skill.py`, neu)
 
@@ -104,7 +113,12 @@ Qualitäts-Direktiven gegen templated Defaults. Alles Inferierte ist als solches
 1. die Bilder in `images/` **anzusehen** (nicht nur die Tokens lesen);
 2. **iterativ/lange zu denken**: erst Konzept, dann Entwurf;
 3. Kernpalette als Grund, **Akzente sparsam** aus der Würze-Palette;
-4. mindestens ein **Bildmotiv kreativ aufzugreifen** und auszubauen;
+4. mindestens ein **Motiv aus dem Inventar als UI-Element neu zu erschaffen** (als SVG/CSS)
+   und passend einzubauen — gemäß der vorgeschlagenen UI-Rolle, z.B.:
+   - Szenen-Element (Wiese, Himmel, Wasser) → atmosphärischer **Hintergrund** (CSS-Gradient/SVG);
+   - Objekt (Rakete, Vogel) → **Deko-Akzent** (Spot-Illustration am Rand/Header);
+   - charakteristische Form (Planet, Bogen) → **Komponenten-Form** (planetförmiger Button,
+     Bogen-Karten-Oberkante);
 5. den Entwurf **gegen die Do/Don't-Direktiven selbst zu kritisieren** und zu verfeinern.
 
 ## Verifikation
@@ -114,6 +128,7 @@ Qualitäts-Direktiven gegen templated Defaults. Alles Inferierte ist als solches
 - `styles.css` enthält nur `@import`;
 - `colors.css` enthält Kernrollen **und** Akzent-Palette als `--color-*` / `--accent-*`;
 - `typography.css` enthält `--font-*` mit Fallback-Stack;
+- `readme.md` rendert das Motiv-/Objekt-Inventar (Name + UI-Rolle), wenn das `tokens.json` eins enthält;
 - SKILL.md-Frontmatter hat valides `name` + `description` (Agent-Skills-Format);
 - **Byte-Determinismus**: zweimal erzeugen → identisch;
 - Fehlerfall (kaputtes JSON) → Exit 2.
