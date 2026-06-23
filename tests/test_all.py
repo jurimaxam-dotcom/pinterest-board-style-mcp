@@ -6,12 +6,15 @@ Beispiel-Tokens. Live-Fetch wird hier NICHT getestet (das ist die manuelle End-t
 """
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
+import board_assets as ba         # noqa: E402
 import fetch_board as fb           # noqa: E402
 import validate_tokens as vt       # noqa: E402
 import mcp_server as srv           # noqa: E402
@@ -144,6 +147,105 @@ class TestInstructionRichFields(unittest.TestCase):
         self.assertNotIn("{cache}", out)
 
 
+class TestSharedAssetPipeline(unittest.TestCase):
+    def test_runtime_mode_returns_bytes(self):
+        with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+            assets = ba.fetch_board_assets(
+                "https://www.pinterest.com/testuser/test-board/",
+                max_images=3,
+                size="1200x",
+                mode="runtime",
+            )
+        self.assertEqual(assets["image_count"], 3)
+        self.assertTrue(all(img["data"] for img in assets["images"]))
+        self.assertTrue(all(img["path"] is None for img in assets["images"]))
+
+    def test_temp_mode_writes_images(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                assets = ba.fetch_board_assets(
+                    "https://www.pinterest.com/testuser/test-board/",
+                    max_images=3,
+                    size="1200x",
+                    mode="temp",
+                    temp_dir=tmp,
+                )
+            self.assertEqual(assets["image_count"], 3)
+            for img in assets["images"]:
+                self.assertTrue(Path(img["path"]).exists())
+
+    def test_mcp_tool_writes_export_bundle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                    output = srv.tool_get_board_style(
+                        {
+                            "board_url": "https://www.pinterest.com/testuser/test-board/",
+                            "max_images": 3,
+                            "export_format": "design-system",
+                            "export_dir": tmp,
+                        }
+                    )
+            self.assertTrue(any(item.get("type") == "text" and "Export gespeichert" in item.get("text", "") for item in output))
+            self.assertTrue(Path(tmp, "images", "01.jpg").exists())
+            self.assertTrue(Path(tmp, "styles.css").exists())
+
+    def test_mcp_tool_uses_sandbox_root_when_export_dir_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sandbox = Path(tmp) / "sandbox"
+            with patch("mcp_server.discover_sandbox_root", return_value=sandbox):
+                with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                    with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                        srv.tool_get_board_style(
+                            {
+                                "board_url": "https://www.pinterest.com/testuser/test-board/",
+                                "max_images": 3,
+                                "export_format": "design-system",
+                            }
+                        )
+            self.assertTrue((sandbox / "testuser-test-board" / "design-system" / "images" / "01.jpg").exists())
+
+    def test_mcp_tool_auto_exports_style_skill_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sandbox = Path(tmp) / "sandbox"
+            with patch("mcp_server.discover_sandbox_root", return_value=sandbox):
+                with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                    with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                        output = srv.tool_get_board_style(
+                            {
+                                "board_url": "https://www.pinterest.com/testuser/test-board/",
+                                "max_images": 3,
+                            }
+                        )
+            target = sandbox / "testuser-test-board" / "style-skill"
+            self.assertTrue((target / "images" / "01.jpg").exists())
+            self.assertTrue((target / "SKILL.md").exists())
+            self.assertTrue(any(str(target) in item.get("text", "") for item in output if item.get("type") == "text"))
+
+    def test_mcp_tool_writes_embeddable_data_uri_manifest_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sandbox = Path(tmp) / "sandbox"
+            with patch("mcp_server.discover_sandbox_root", return_value=sandbox):
+                with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                    with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                        output = srv.tool_get_board_style(
+                            {
+                                "board_url": "https://www.pinterest.com/testuser/test-board/",
+                                "max_images": 3,
+                            }
+                        )
+            manifest = sandbox / "testuser-test-board" / "style-skill" / "embeddable-images.json"
+            self.assertTrue(manifest.exists())
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            self.assertEqual(data["images"][0]["file"], "01.jpg")
+            self.assertEqual(data["images"][0]["src"], "data:image/jpeg;base64,aW1nLTE=")
+            self.assertEqual(data["images"][0]["css"], "background-image: url('data:image/jpeg;base64,aW1nLTE=');")
+            text = "\n".join(item.get("text", "") for item in output if item.get("type") == "text")
+            self.assertIn("EMBEDDABLE_IMAGE_SOURCES", text)
+            self.assertIn(str(manifest), text)
+            self.assertNotIn('src="data:image/jpeg;base64,aW1nLTE="', text)
+
+
 class TestShortUrl(unittest.TestCase):
     def test_is_short_url_pinit(self):
         self.assertTrue(fb.is_short_url("https://pin.it/7KaLebnvd"))
@@ -181,6 +283,12 @@ class TestMcpProtocol(unittest.TestCase):
     def test_tools_list(self):
         r = srv.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual([t["name"] for t in r["result"]["tools"]], ["get_board_style"])
+
+    def test_export_dir_description_names_sandbox_default(self):
+        tool = srv.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})["result"]["tools"][0]
+        desc = tool["inputSchema"]["properties"]["export_dir"]["description"]
+        self.assertIn("Claude-sichtbarer Sandbox-/Upload-Pfad", desc)
+        self.assertNotIn("~/.cache/pinterest-board-style", desc)
 
     def test_unknown_tool_errors(self):
         r = srv.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/call",

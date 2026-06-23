@@ -22,6 +22,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import shutil
 import sys
 import traceback
 from pathlib import Path
@@ -35,7 +36,9 @@ DEFAULT_PROTOCOL = "2024-11-05"
 IMAGE_SIZE = "400x300"               # kleine i.pinimg-Variante -> moderater Payload
 CACHE_ROOT = Path.home() / ".cache" / "pinterest-board-style"  # immer schreibbar (auch in Desktop)
 
-INSTRUCTION = """Die folgenden {count} Bilder sind das Pinterest-Board "{slug}" (Originale liegen lokal in {cache}).
+INSTRUCTION = """Die folgenden {count} Bilder sind das Pinterest-Board "{slug}".
+Hinweis: Der interne MCP-Cache liegt auf dem Host unter {cache}; diesen Host-Pfad NICHT fuer HTML/CSS-Einbettung verwenden.
+Fuer echte Einbettung in Artefakte den separaten EMBEDDABLE_IMAGE_SOURCES-Block mit data:image-Quellen verwenden.
 Analysiere sie GEMEINSAM und leite einen wiederverwendbaren Design-Style ab (nicht je Bild einzeln):
 - Farben: dominante Hex-Werte in Rollen (background, surface, text, primary, accent, muted) + palette nach Dominanz.
 - Mehrheitsentscheidung ueber alle Bilder fuer mood, era, temperature (warm/cool/neutral), saturation, contrast, density.
@@ -76,6 +79,110 @@ def render_instruction(count, slug, cache) -> str:
             .replace("{cache}", str(cache)))
 
 
+def _slug_to_hex(slug: str, offset: int = 0) -> str:
+    value = (sum(ord(ch) for ch in slug) + offset * 97) % 0xFFFFFF
+    return f"#{value:06x}"
+
+
+def render_embeddable_image_sources(manifest_path: Path, image_count: int) -> str:
+    lines = [
+        "EMBEDDABLE_IMAGE_SOURCES",
+        f"{image_count} embeddable data URI sources were written to:",
+        str(manifest_path),
+        "Use that JSON manifest for HTML <img src> and CSS background-image values. Do not use /Users/tom cache paths for embedding.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def discover_sandbox_root() -> Path:
+    for env_name in ("CLAUDE_USER_FILES_PATH", "CLAUDE_COWORK_USER_FILES_PATH", "CLAUDE_SANDBOX_ROOT"):
+        value = os.getenv(env_name)
+        if value:
+            return Path(value).expanduser()
+    config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        prefs = data.get("preferences") or {}
+        for key in ("coworkUserFilesPath",):
+            value = prefs.get(key) or data.get(key)
+            if value:
+                return Path(value).expanduser()
+    return Path.home() / "Documents" / "Claude"
+
+
+def write_export_bundle(assets: dict, *, export_dir: str | os.PathLike[str], export_format: str) -> Path:
+    export_dir = Path(export_dir)
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    images_dir = export_dir / "images"
+    images_dir.mkdir(parents=True, exist_ok=True)
+    embeddable_images = []
+    for img in assets.get("images", []):
+        src_path = img.get("path")
+        dest = images_dir / img.get("file", f"{img['n']:02d}.jpg")
+        if src_path and Path(src_path).exists():
+            shutil.copy2(src_path, dest)
+        elif img.get("data"):
+            dest.write_bytes(img["data"])
+        if dest.exists():
+            encoded = base64.b64encode(dest.read_bytes()).decode("ascii")
+            data_uri = f"data:image/jpeg;base64,{encoded}"
+            embeddable_images.append({
+                "file": dest.name,
+                "src": data_uri,
+                "html": f'<img src="{data_uri}" alt="{dest.name}">',
+                "css": f"background-image: url('{data_uri}');",
+            })
+
+    tokens_dir = export_dir / "tokens"
+    tokens_dir.mkdir(parents=True, exist_ok=True)
+    slug = assets.get("slug", export_dir.name)
+    colors = [
+        ("background", _slug_to_hex(slug, 0)),
+        ("surface", _slug_to_hex(slug, 1)),
+        ("text", _slug_to_hex(slug, 2)),
+        ("primary", _slug_to_hex(slug, 3)),
+        ("accent", _slug_to_hex(slug, 4)),
+        ("muted", _slug_to_hex(slug, 5)),
+    ]
+    color_css = ["/* Auto-generated starter palette from the board slug. */", ":root {"]
+    color_css.extend(f"  --color-{name}: {value};" for name, value in colors)
+    color_css.append("}")
+    (tokens_dir / "colors.css").write_text("\n".join(color_css) + "\n", encoding="utf-8")
+    (tokens_dir / "radius.css").write_text(
+        ":root {\n  --radius-base: 12px;\n  --radius-lg: 24px;\n}\n",
+        encoding="utf-8",
+    )
+
+    (export_dir / "styles.css").write_text(
+        '@import "tokens/colors.css";\n@import "tokens/radius.css";\n',
+        encoding="utf-8",
+    )
+    (export_dir / "analysis.md").write_text(
+        f"Board: {assets.get('board_url')}\nSlug: {slug}\nImages: {assets.get('image_count')}\n",
+        encoding="utf-8",
+    )
+    (export_dir / "readme.md").write_text(
+        f"# {slug} — Design-System-Export\n\n"
+        f"Diese Ordnerstruktur ist fuer Claude Design/Claude Desktop vorbereitet. "
+        f"Die Bilder liegen in `images/`, die Starter-Tokens in `tokens/`.\n",
+        encoding="utf-8",
+    )
+    (export_dir / "SKILL.md").write_text(
+        f"---\nname: {slug}-design\ndescription: Use this package as a starter design system for board-derived UI work.\nuser-invocable: true\n---\n\n"
+        "Use the images in `images/` as references and the CSS variables in `tokens/` as your baseline.\n",
+        encoding="utf-8",
+    )
+    (export_dir / "embeddable-images.json").write_text(
+        json.dumps({"images": embeddable_images}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return export_dir
+
+
 # ------------------------------------------------------------------ Tool-Logik
 
 def tool_get_board_style(args: dict):
@@ -83,42 +190,42 @@ def tool_get_board_style(args: dict):
     if not isinstance(board_url, str) or not board_url.strip():
         raise ValueError("Parameter 'board_url' (string) fehlt.")
     max_images = int((args or {}).get("max_images") or 25)
+    export_format = (args or {}).get("export_format") or "style-skill"
+    export_dir = (args or {}).get("export_dir")
+    if export_format not in {"none", "design-system", "style-skill"}:
+        raise ValueError("Parameter 'export_format' muss eine von: none, design-system, style-skill sein.")
     url = board_url.strip()
     log("get_board_style:", url, f"(max_images={max_images})")
     if fb.is_short_url(url):
         url = fb.resolve_short_url(url)
         log("Kurzlink aufgeloest ->", url)
 
-    rss_url, slug = fb.derive_rss_and_slug(url)
-    log("RSS:", rss_url, "| slug:", slug)
-    items = fb.parse_items(fb.http_get(rss_url, max_bytes=5_000_000))
-    if not items:
-        raise fb.FetchError("Keine Bild-Pins gefunden — ist das Board oeffentlich und die URL korrekt?")
-
+    _, slug = fb.derive_rss_and_slug(url)
     out_dir = CACHE_ROOT / slug
     out_dir.mkdir(parents=True, exist_ok=True)
-    blobs = []
-    for it in items:
-        if len(blobs) >= max_images:
-            break
-        url = fb.upgrade_image_url(it["image_url_raw"], IMAGE_SIZE)
-        try:
-            data = fb.http_get(url, binary=True)
-        except fb.FetchError as e:
-            log("skip image:", e)
-            continue
-        (out_dir / f"{len(blobs) + 1:02d}.jpg").write_bytes(data)
-        blobs.append(data)
-    if len(blobs) < 3:
-        raise fb.FetchError(f"Nur {len(blobs)} Bilder ladbar (<3) — zu wenig Signal fuer einen Style.")
+    assets = fb.fetch_board_assets(
+        url,
+        max_images=max_images,
+        size=IMAGE_SIZE,
+        mode="persistent",
+        out_dir=out_dir,
+    )
+    blobs = [img["data"] for img in assets["images"]]
 
     log(f"{len(blobs)} Bilder geladen -> Analyse-Anweisung gesendet.")
-    intro = {"type": "text", "text": render_instruction(len(blobs), slug, out_dir)}
+    intro = {"type": "text", "text": render_instruction(len(blobs), assets["slug"], Path(assets["out_dir"]))}
+    encoded_images = [base64.b64encode(d).decode("ascii") for d in blobs]
     images = [
-        {"type": "image", "data": base64.b64encode(d).decode("ascii"), "mimeType": "image/jpeg"}
-        for d in blobs
+        {"type": "image", "data": encoded, "mimeType": "image/jpeg"}
+        for encoded in encoded_images
     ]
-    return [intro] + images
+    output = [intro] + images
+    if export_format != "none":
+        target_dir = Path(export_dir) if export_dir else discover_sandbox_root() / assets["slug"] / export_format
+        write_export_bundle(assets, export_dir=target_dir, export_format=export_format)
+        output.append({"type": "text", "text": render_embeddable_image_sources(target_dir / "embeddable-images.json", len(encoded_images))})
+        output.append({"type": "text", "text": f"Export gespeichert unter: {target_dir}"})
+    return output
 
 
 TOOLS = [
@@ -128,7 +235,9 @@ TOOLS = [
             "Holt die Bilder eines OEFFENTLICHEN Pinterest-Boards (letzte <=25 Pins, via RSS, "
             "keine Auth/keine Keys) und gibt sie INLINE als Bilder + eine Analyse-Anweisung zurueck, "
             "sodass Claude daraus einen wiederverwendbaren Design-Style (DTCG-Tokens + Brief) ableitet "
-            "und als Referenz fuers aktuelle Projekt nutzt. "
+            "und als Referenz fuers aktuelle Projekt nutzt. Erstellt standardmaessig zusaetzlich ein "
+            "style-skill-Paket mit images/ in einem Claude-sichtbaren Sandbox-/Upload-Pfad, damit Claude "
+            "die Board-Bilder in gebauten Artefakten einbetten kann. "
             "Eingabe: eine Board-URL wie https://www.pinterest.com/<user>/<board>/."
         ),
         "inputSchema": {
@@ -141,6 +250,14 @@ TOOLS = [
                 "max_images": {
                     "type": "integer",
                     "description": "max. Anzahl Bilder (Default 25).",
+                },
+                "export_format": {
+                    "type": "string",
+                    "description": "Optionaler Export-Modus: style-skill (Default), design-system oder none.",
+                },
+                "export_dir": {
+                    "type": "string",
+                    "description": "Optionaler Zielordner fuer den Export (wenn leer: Claude-sichtbarer Sandbox-/Upload-Pfad/<slug>/<format>/).",
                 },
             },
             "required": ["board_url"],

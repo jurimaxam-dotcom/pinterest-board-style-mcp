@@ -61,7 +61,8 @@ Einbettung (hero-bg, bleed-band, atmosphere, …).
 
 **Zwei Ausgabe-Pfade** ab demselben `tokens.json`: `tokens_to_ds.py` für den **Claude-Design-Import**,
 `build_style_skill.py` für ein **portables, generatives Style-Skill**, das beim Bauen den Stil anwendet —
-inklusive der gebündelten Board-Bilder als immersive Elemente.
+inklusive der gebündelten Board-Bilder als immersive Elemente. Der Design-System-Export kann optional
+mit `--images <ordner>` Referenz-Bilder direkt in den Output-Ordner kopieren.
 
 ## Grenzen (ehrlich)
 
@@ -81,9 +82,18 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 
 ## Cache & Verifikation
 
-- **Cache-Orte:** Der **MCP-Server** legt Bilder unter `~/.cache/pinterest-board-style/<slug>/` ab
-  (immer schreibbar — auch wenn das Arbeitsverzeichnis read-only ist, z.B. in Claude Desktop). Das
-  **CLI** `fetch_board.py` cachet projektlokal nach `./.cache/<slug>/` (per `--out` änderbar).
+- **Cache-/Export-Orte:** Der **MCP-Server** legt Rohbilder intern unter
+  `~/.cache/pinterest-board-style/<slug>/` ab (robust bei read-only Arbeitsverzeichnissen). Jeder
+  normale MCP-Aufruf exportiert zusätzlich automatisch ein `style-skill`-Paket mit `images/` in einen
+  Claude-sichtbaren Sandbox-/Upload-Pfad: `<claude-files>/<slug>/style-skill/`. Mit
+  `export_format: "none"` lässt sich dieser Export bewusst abschalten; mit `export_format:
+  "design-system"` wird stattdessen ein Design-System-Startpaket geschrieben. Das **CLI**
+  `fetch_board.py` cachet projektlokal nach `./.cache/<slug>/` (per `--out` änderbar).
+- **Einbettung im Chat:** Für Claude-Desktop-Artefakte sind Host-Pfade wie `/Users/tom/...` nicht
+  zuverlässig lesbar. Der MCP schreibt deshalb im Exportpaket `embeddable-images.json` mit
+  `data:image/jpeg;base64,...`-Quellen und gibt im Tool-Result nur den Manifestpfad zurück. Die
+  Data-URIs sind die primäre Quelle für `<img src>` und CSS-`background-image`; sie stehen bewusst
+  nicht direkt im Tool-Result, damit Claudes 1MB-Result-Limit nicht gerissen wird.
 - **Tests:** `./test.sh` — deterministische stdlib-Tests (kein Netz, RSS-Fixture): URL-Ableitung,
   RSS-Parsing, XXE-Guard, Validator (grün **und** rot), MCP-Protokoll + Fehlerfälle.
 - **Validator-Strenge (ehrlich):** `validate_tokens.py` prüft die **Kern-Invarianten** (Hex-Farben,
@@ -95,6 +105,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 ```
 .
 ├── scripts/
+│   ├── board_assets.py       # Gemeinsame Asset-Pipeline: RSS → Bilder in runtime/temp/persistent Modi
 │   ├── fetch_board.py        # RSS-Fetcher (stdlib, CLI): Board → ./.cache/<slug>/ + manifest.json
 │   ├── mcp_server.py         # stdio-MCP-Server (stdlib); Cache: ~/.cache/pinterest-board-style/
 │   ├── validate_tokens.py    # Token-Validator (stdlib): Kern-Invarianten + Stufe-1-Felder
@@ -116,7 +127,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
 | Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
 | Token-Validator (`validate_tokens.py`) — Kern-Invarianten + optionale Stufe-1-Felder | ✅ |
-| **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) | ✅ |
+| **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) + optionaler Export-Ordner fuer Design-System-Startpakete | ✅ |
 | Adapter Claude-Design-Import (`tokens_to_ds.py`) | ✅ |
 | **Adapter portables Style-Skill (`build_style_skill.py`)** — Tokens + Bilder → SKILL.md/CSS/images, byte-deterministisch | ✅ |
 | Test-Gate (`./test.sh`, stdlib, kein Netz) | ✅ 40 Tests |

@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -154,7 +155,8 @@ def emit_skill(slug: str, title: str) -> str:
 
 
 def emit_readme(doc: dict, slug: str, title: str, vibe: str | None,
-                directives: str | None, outliers_md: str | None) -> str:
+                directives: str | None, outliers_md: str | None,
+                image_names: list[str] | None = None) -> str:
     color = doc.get("color", {})
     bs = (doc.get("$extensions") or {}).get("boardStyle", {})
     typo = bs.get("typography", {}) if isinstance(bs.get("typography"), dict) else {}
@@ -230,6 +232,13 @@ def emit_readme(doc: dict, slug: str, title: str, vibe: str | None,
     if bs.get("notes"):
         out += ["## Hinweis", "", _md_text(bs["notes"]), ""]
 
+    if image_names:
+        out += ["## Referenz-Bilder", "",
+                f"{len(image_names)} Board-Bilder sind als Assets im Ordner `images/` mitgeliefert.", ""]
+        for name in image_names:
+            out.append(f"- `images/{name}`")
+        out.append("")
+
     # Token-Index
     out += ["## Token-Dateien", "",
             "- `styles.css` - Einstieg (@import)",
@@ -260,7 +269,7 @@ def _md_text(text: str) -> str:
 
 # ----------------------------------------------------------------------------- build
 
-def build(doc: dict, style_md: str, out_dir: Path) -> list[Path]:
+def build(doc: dict, style_md: str, out_dir: Path, images_dir: Path | None = None) -> list[Path]:
     color = doc.get("color")
     if not isinstance(color, dict):
         raise ValueError("tokens.json hat kein 'color'-Objekt - ist das ein board-style tokens.json?")
@@ -279,6 +288,15 @@ def build(doc: dict, style_md: str, out_dir: Path) -> list[Path]:
 
     written: list[Path] = []
     imports = ["tokens/colors.css"]
+    image_names: list[str] = []
+
+    if images_dir is not None and images_dir.exists():
+        images_out = out_dir / "images"
+        images_out.mkdir(parents=True, exist_ok=True)
+        for src in sorted(images_dir.iterdir(), key=lambda p: p.name):
+            if src.is_file() and src.suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
+                shutil.copy2(src, images_out / src.name)
+                image_names.append(src.name)
 
     (tokens_dir / "colors.css").write_text(emit_colors_css(color, slug), encoding="utf-8")
     written.append(tokens_dir / "colors.css")
@@ -293,7 +311,9 @@ def build(doc: dict, style_md: str, out_dir: Path) -> list[Path]:
     written.append(out_dir / "styles.css")
 
     (out_dir / "readme.md").write_text(
-        emit_readme(doc, slug, title, vibe, directives, outliers_md), encoding="utf-8")
+        emit_readme(doc, slug, title, vibe, directives, outliers_md, image_names=image_names or None),
+        encoding="utf-8",
+    )
     written.append(out_dir / "readme.md")
 
     (out_dir / "SKILL.md").write_text(emit_skill(slug, title), encoding="utf-8")
@@ -308,6 +328,7 @@ def main(argv=None) -> int:
     parser.add_argument("tokens", help="Pfad zu <slug>.tokens.json")
     parser.add_argument("--style", help="Pfad zu <slug>.style.md (Default: neben tokens.json)")
     parser.add_argument("--out", help="Ziel-Ordner (Default: <tokens-ordner>/<slug>-design-system)")
+    parser.add_argument("--images", help="Optionaler Ordner mit Referenz-Bildern, die in `images/` kopiert werden")
     args = parser.parse_args(argv)
 
     tokens_path = Path(args.tokens)
@@ -331,9 +352,13 @@ def main(argv=None) -> int:
     slug = (bs.get("source", {}) or {}).get("board_slug") \
         or tokens_path.name.replace(".tokens.json", "")
     out_dir = Path(args.out) if args.out else tokens_path.parent / f"{slug}-design-system"
+    images_dir = Path(args.images) if args.images else None
+    if images_dir is not None and not images_dir.exists():
+        print(f"FEHLER: Bild-Ordner nicht gefunden: {images_dir}", file=sys.stderr)
+        return 2
 
     try:
-        written = build(doc, style_md, out_dir)
+        written = build(doc, style_md, out_dir, images_dir=images_dir)
     except ValueError as e:
         print(f"FEHLER: {e}", file=sys.stderr)
         return 2
