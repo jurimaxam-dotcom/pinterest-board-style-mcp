@@ -41,6 +41,9 @@ DTCG-Tokens + Style-Brief → designt damit weiter.
 ```
 Board-URL  ──►  MCP get_board_style  ──►  .rss (≤25 Pins, keine Auth)  ──►  Bilder nach ~/.cache/pinterest-board-style/
                                                                                     │
+   extract_facts.py (uv+Pillow, optional): gemessene Palette/edgeColors/metrics  ◄─ ┤
+                     │  = verbindlicher Anker (MEASURED_FACTS)                      │
+                     ▼                                                              │
    Claude liest die Bilder (Vision)  ◄───────────────────────────────────────────  ┘
                      │
                      ▼
@@ -95,8 +98,10 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
   `data:image/jpeg;base64,...`-Quellen und gibt im Tool-Result nur den Manifestpfad zurück. Die
   Data-URIs sind die primäre Quelle für `<img src>` und CSS-`background-image`; sie stehen bewusst
   nicht direkt im Tool-Result, damit Claudes 1MB-Result-Limit nicht gerissen wird.
-- **Tests:** `./test.sh` — deterministische stdlib-Tests (kein Netz, RSS-Fixture): URL-Ableitung,
-  RSS-Parsing, XXE-Guard, Validator (grün **und** rot), MCP-Protokoll + Fehlerfälle.
+- **Tests:** `./test.sh` — zwei Stufen: (1) deterministische stdlib-Tests (kein Netz, RSS-Fixture):
+  URL-Ableitung, RSS-Parsing, XXE-Guard, Validator (grün **und** rot), MCP-Protokoll + Fehlerfälle;
+  (2) `extract_facts`-Tests via `uv run --with pillow` (synthetische PNG-Fixtures, deterministisch —
+  nur der allererste uv-Lauf lädt Pillow einmalig in den uv-Cache).
 - **Validator-Strenge (ehrlich):** `validate_tokens.py` prüft die **Kern-Invarianten** (Hex-Farben,
   Pflicht-Rollen, Enums, confidence-Range) — **nicht** das vollständige JSON-Schema. Das komplette
   DTCG-Schema liegt in `.claude/skills/board-style-extractor/dtcg.schema.json`.
@@ -108,6 +113,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 ├── scripts/
 │   ├── board_assets.py       # Gemeinsame Asset-Pipeline: RSS → Bilder in runtime/temp/persistent Modi
 │   ├── fetch_board.py        # RSS-Fetcher (stdlib, CLI): Board → ./.cache/<slug>/ + manifest.json
+│   ├── extract_facts.py      # Pixel-Fakten (uv+Pillow, PEP 723): Palette/edgeColors/metrics → facts.json
 │   ├── mcp_server.py         # stdio-MCP-Server (stdlib); Cache: ~/.cache/pinterest-board-style/
 │   ├── validate_tokens.py    # Token-Validator (stdlib): Kern-Invarianten + Stufe-1-Felder
 │   ├── tokens_to_ds.py       # Adapter: tokens.json → Claude-Design-Import
@@ -126,6 +132,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 | Komponente | Status |
 |---|---|
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
+| Pixel-Fakten (`extract_facts.py`, uv+Pillow) — gemessene Palette/edgeColors/metrics als Analyse-Anker | ✅ |
 | Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
 | Token-Validator (`validate_tokens.py`) — Kern-Invarianten + optionale Stufe-1-Felder | ✅ |
 | **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) + optionaler Export-Ordner fuer Bild-Rohpakete (Tokens erst nach Analyse) | ✅ |

@@ -16,17 +16,24 @@ Eine **Board-URL** ODER ein bereits gefuellter **`.cache/<slug>/`** (mit `manife
 
 1. **Bilder beschaffen** (falls noch kein Cache vorhanden):
    `python3 scripts/fetch_board.py "<board-url>"` → `.cache/<slug>/NN.jpg` + `manifest.json`.
-2. **Manifest lesen**: `.cache/<slug>/manifest.json` → `slug`, `images[]`, `fetched_count`.
-3. **Alle Bilder laden**: jedes `.cache/<slug>/NN.jpg` der Reihe nach mit dem **Read-Tool** in
+2. **Pixel-Fakten messen** (Pflicht, wenn `uv` vorhanden — `command -v uv`):
+   `uv run scripts/extract_facts.py .cache/<slug>` → `.cache/<slug>/facts.json` mit gemessener
+   Palette+Dominanz, `edgeColors` je Bild und `metrics` (temperature/saturation/contrast).
+   Diese Fakten sind der **verbindliche Anker** der Analyse: Farben daraus ableiten,
+   `edgeColors` uebernehmen (nicht schaetzen). Ohne `uv`: Vision-only weiter, aber im Brief
+   vermerken, dass ungemessene Farben vorliegen.
+3. **Manifest lesen**: `.cache/<slug>/manifest.json` → `slug`, `images[]`, `fetched_count`.
+4. **Alle Bilder laden**: jedes `.cache/<slug>/NN.jpg` der Reihe nach mit dem **Read-Tool** in
    EINEN Analysekontext. Bildnummer `NN` = „Image NN" in der Analyse.
-4. **Gemeinsam analysieren** nach dem Analyse-Prompt + den Aggregations-Regeln unten — alle
-   Bilder zusammen, nie einzeln zusammengeschustert.
-5. **Output schreiben**:
+5. **Gemeinsam analysieren** nach dem Analyse-Prompt + den Aggregations-Regeln unten — alle
+   Bilder zusammen, nie einzeln zusammengeschustert. Liegt `facts.json` vor: Palette/metrics/
+   edgeColors daraus ankern.
+6. **Output schreiben**:
    - `examples/<slug>.tokens.json` — exakt nach `dtcg.schema.json` (in diesem Skill-Ordner).
    - `examples/<slug>.style.md` — nach der Brief-Vorlage unten.
-6. **Validieren (Pflicht-Gate)**: `python3 scripts/validate_tokens.py examples/<slug>.tokens.json`.
+7. **Validieren (Pflicht-Gate)**: `python3 scripts/validate_tokens.py examples/<slug>.tokens.json`.
    Muss „OK" liefern. Bei Fehlern: korrigieren und erneut — **nie** ein invalides File belassen.
-7. **Optional — portables Style-Skill bauen** (Ausgabepfad fuer Claude Code/Desktop statt
+8. **Optional — portables Style-Skill bauen** (Ausgabepfad fuer Claude Code/Desktop statt
    Claude-Design-Import): `python3 scripts/build_style_skill.py examples/<slug>.tokens.json
    .cache/<slug> examples/<slug>-style-skill` → self-contained Skill-Ordner (SKILL.md,
    `tokens/*.css`, `images/`). Reicher, wenn die additiven Stufe-1-Felder unten gesetzt sind.

@@ -23,6 +23,7 @@ import base64
 import json
 import os
 import shutil
+import subprocess
 import sys
 import traceback
 from pathlib import Path
@@ -35,10 +36,13 @@ SERVER_VERSION = "0.2.0"
 DEFAULT_PROTOCOL = "2024-11-05"
 IMAGE_SIZE = "400x300"               # kleine i.pinimg-Variante -> moderater Payload
 CACHE_ROOT = Path.home() / ".cache" / "pinterest-board-style"  # immer schreibbar (auch in Desktop)
+FACTS_SCRIPT = Path(__file__).resolve().with_name("extract_facts.py")
+FACTS_TIMEOUT = 120                  # Sekunden; erster uv-Lauf laedt ggf. Pillow in den uv-Cache
 
 INSTRUCTION = """Die folgenden {count} Bilder sind das Pinterest-Board "{slug}".
 Hinweis: Der interne MCP-Cache liegt auf dem Host unter {cache}; diesen Host-Pfad NICHT fuer HTML/CSS-Einbettung verwenden.
 Fuer echte Einbettung in Artefakte den separaten EMBEDDABLE_IMAGE_SOURCES-Block mit data:image-Quellen verwenden.
+Folgt ein MEASURED_FACTS-Block, sind dessen Palette, metrics und edgeColors der VERBINDLICHE Anker: Farben daraus ableiten, nicht frei schaetzen.
 Analysiere sie GEMEINSAM und leite einen wiederverwendbaren Design-Style ab (nicht je Bild einzeln):
 - Farben: dominante Hex-Werte in Rollen (background, surface, text, primary, accent, muted) + palette nach Dominanz.
 - Mehrheitsentscheidung ueber alle Bilder fuer mood, era, temperature (warm/cool/neutral), saturation, contrast, density.
@@ -77,6 +81,39 @@ def render_instruction(count, slug, cache) -> str:
             .replace("{count}", str(count))
             .replace("{slug}", str(slug))
             .replace("{cache}", str(cache)))
+
+
+def try_extract_facts(images_dir: Path):
+    """Stufe 1a: deterministische Pixel-Fakten via `uv run extract_facts.py` (Pillow).
+    Graceful: ohne uv oder bei Fehlern -> None, die Analyse laeuft dann Vision-only."""
+    uv = shutil.which("uv")
+    if not uv:
+        log("uv nicht gefunden — Pixel-Fakten uebersprungen (Vision-only-Analyse).")
+        return None
+    facts_path = Path(images_dir) / "facts.json"
+    try:
+        subprocess.run(
+            [uv, "run", str(FACTS_SCRIPT), str(images_dir), "-o", str(facts_path)],
+            check=True, capture_output=True, timeout=FACTS_TIMEOUT,
+        )
+        return json.loads(facts_path.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001 — Fakten sind ein Anker, kein Blocker
+        log("Fakten-Extraktion fehlgeschlagen (weiter Vision-only):", repr(e))
+        return None
+
+
+def render_measured_facts(facts: dict, facts_path: Path) -> str:
+    return (
+        "MEASURED_FACTS (deterministisch aus den Pixeln gemessen — verbindlicher Anker):\n"
+        + json.dumps(facts, ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n\nRegeln fuer die Analyse:\n"
+        "- Alle color.*-$value und palette-Eintraege MUESSEN nahe an dieser gemessenen Palette liegen"
+        " — keine Farben erfinden, die die Pixel nicht hergeben.\n"
+        "- edgeColors aus diesem Block uebernehmen, NICHT schaetzen.\n"
+        "- temperature/saturation/contrast aus metrics uebernehmen; nur bei starkem visuellem"
+        " Widerspruch abweichen und das in $extensions.boardStyle begruenden.\n"
+        f"- Gespeichert unter: {facts_path}\n"
+    )
 
 
 def render_embeddable_image_sources(manifest_path: Path, image_count: int) -> str:
@@ -188,12 +225,17 @@ def tool_get_board_style(args: dict):
 
     log(f"{len(blobs)} Bilder geladen -> Analyse-Anweisung gesendet.")
     intro = {"type": "text", "text": render_instruction(len(blobs), assets["slug"], Path(assets["out_dir"]))}
+    facts = try_extract_facts(Path(assets["out_dir"]))
+    facts_block = (
+        [{"type": "text", "text": render_measured_facts(facts, Path(assets["out_dir"]) / "facts.json")}]
+        if facts else []
+    )
     encoded_images = [base64.b64encode(d).decode("ascii") for d in blobs]
     images = [
         {"type": "image", "data": encoded, "mimeType": "image/jpeg"}
         for encoded in encoded_images
     ]
-    output = [intro] + images
+    output = [intro] + facts_block + images
     if export_format != "none":
         target_dir = Path(export_dir) if export_dir else discover_sandbox_root() / assets["slug"] / export_format
         write_export_bundle(assets, export_dir=target_dir, export_format=export_format)

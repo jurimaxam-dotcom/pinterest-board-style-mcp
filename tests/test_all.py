@@ -135,6 +135,10 @@ class TestInstructionRichFields(unittest.TestCase):
         for kw in ("accentPalette", "webfonts", "motifs", "imageRoles", "edgeColors"):
             self.assertIn(kw, srv.INSTRUCTION, f"INSTRUCTION verlangt '{kw}' nicht")
 
+    def test_instruction_declares_facts_anchor(self):
+        self.assertIn("MEASURED_FACTS", srv.INSTRUCTION,
+                      "INSTRUCTION muss den MEASURED_FACTS-Block als verbindlichen Anker erklaeren")
+
     def test_render_instruction_survives_literal_braces(self):
         # Regression: INSTRUCTION enthaelt literale JSON-{...} -> .format() crasht mit KeyError.
         out = srv.render_instruction(7, "demo-board", "/cache/demo-board")
@@ -147,7 +151,65 @@ class TestInstructionRichFields(unittest.TestCase):
         self.assertNotIn("{cache}", out)
 
 
+FAKE_FACTS = {
+    "source": {"images_dir": "/tmp/x", "image_count": 3},
+    "palette": [{"hex": "#22303c", "dominance": 0.61}, {"hex": "#c8b8a4", "dominance": 0.39}],
+    "metrics": {"temperature": "cool", "saturation": "low", "contrast": "medium"},
+    "edgeColors": {"01": {"top": "#22303c", "bottom": "#1a242e"}},
+}
+
+
+class TestMeasuredFacts(unittest.TestCase):
+    """Stufe 1a: deterministische Pixel-Fakten als verbindlicher Anker der Vision-Analyse."""
+
+    def test_render_measured_facts_block(self):
+        text = srv.render_measured_facts(FAKE_FACTS, Path("/cache/demo/facts.json"))
+        self.assertIn("MEASURED_FACTS", text)
+        self.assertIn("#22303c", text)
+        self.assertIn("edgeColors", text)
+        self.assertIn("/cache/demo/facts.json", text)
+
+    def test_tool_includes_facts_block_when_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                with patch("mcp_server.try_extract_facts", return_value=FAKE_FACTS):
+                    with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                        output = srv.tool_get_board_style(
+                            {
+                                "board_url": "https://www.pinterest.com/testuser/test-board/",
+                                "max_images": 3,
+                                "export_format": "none",
+                            }
+                        )
+        facts_blocks = [item["text"] for item in output
+                        if item.get("type") == "text" and item.get("text", "").startswith("MEASURED_FACTS")]
+        self.assertEqual(len(facts_blocks), 1)
+        self.assertIn("#22303c", facts_blocks[0])
+
+    def test_tool_survives_missing_uv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                with patch("mcp_server.shutil.which", return_value=None):
+                    with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                        output = srv.tool_get_board_style(
+                            {
+                                "board_url": "https://www.pinterest.com/testuser/test-board/",
+                                "max_images": 3,
+                                "export_format": "none",
+                            }
+                        )
+        self.assertFalse(any(item.get("type") == "text" and item.get("text", "").startswith("MEASURED_FACTS")
+                             for item in output))
+        self.assertTrue(any(item.get("type") == "image" for item in output))
+
+
 class TestSharedAssetPipeline(unittest.TestCase):
+    def setUp(self):
+        # kein Netz, kein uv-Subprozess im Gate: Fakten-Extraktion neutralisieren
+        patcher = patch("mcp_server.try_extract_facts", return_value=None)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_runtime_mode_returns_bytes(self):
         with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
             assets = ba.fetch_board_assets(
