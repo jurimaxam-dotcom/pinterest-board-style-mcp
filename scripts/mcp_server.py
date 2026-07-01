@@ -123,7 +123,7 @@ def render_embeddable_image_sources(manifest_path: Path, image_count: int) -> st
         "EMBEDDABLE_IMAGE_SOURCES",
         f"{image_count} embeddable data URI sources were written to:",
         str(manifest_path),
-        "Use that JSON manifest for HTML <img src> and CSS background-image values. Do not use /Users/tom cache paths for embedding.",
+        "Use that JSON manifest for HTML <img src> and CSS background-image values. Do not use local host cache paths for embedding.",
     ]
     return "\n".join(lines) + "\n"
 
