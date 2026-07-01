@@ -113,6 +113,8 @@ def render_measured_facts(facts: dict, facts_path: Path) -> str:
         "- temperature/saturation/contrast aus metrics uebernehmen; nur bei starkem visuellem"
         " Widerspruch abweichen und das in $extensions.boardStyle begruenden.\n"
         f"- Gespeichert unter: {facts_path}\n"
+        f"- Pflicht-Gate nach dem Schreiben der tokens.json:"
+        f" python3 scripts/validate_tokens.py <tokens.json> --facts {facts_path}\n"
     )
 
 

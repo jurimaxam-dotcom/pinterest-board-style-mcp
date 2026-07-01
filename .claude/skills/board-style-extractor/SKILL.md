@@ -31,8 +31,11 @@ Eine **Board-URL** ODER ein bereits gefuellter **`.cache/<slug>/`** (mit `manife
 6. **Output schreiben**:
    - `examples/<slug>.tokens.json` — exakt nach `dtcg.schema.json` (in diesem Skill-Ordner).
    - `examples/<slug>.style.md` — nach der Brief-Vorlage unten.
-7. **Validieren (Pflicht-Gate)**: `python3 scripts/validate_tokens.py examples/<slug>.tokens.json`.
-   Muss „OK" liefern. Bei Fehlern: korrigieren und erneut — **nie** ein invalides File belassen.
+7. **Validieren (Pflicht-Gate)**: `python3 scripts/validate_tokens.py examples/<slug>.tokens.json`
+   — wenn `facts.json` existiert, IMMER mit ΔE-Gate: `--facts .cache/<slug>/facts.json`
+   (jede Farbe muss nahe an der gemessenen Palette liegen, temperature muss zur Messung passen).
+   Muss „OK" liefern. Bei Fehlern: **Farben korrigieren**, nie das Gate lockern — und erneut.
+   **Nie** ein invalides File belassen.
 8. **Optional — portables Style-Skill bauen** (Ausgabepfad fuer Claude Code/Desktop statt
    Claude-Design-Import): `python3 scripts/build_style_skill.py examples/<slug>.tokens.json
    .cache/<slug> examples/<slug>-style-skill` → self-contained Skill-Ordner (SKILL.md,

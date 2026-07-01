@@ -130,6 +130,96 @@ class TestValidatorRichFields(unittest.TestCase):
         self.assertTrue(vt.validate(self.doc))
 
 
+def _facts_from_doc(doc):
+    """Fakten, die exakt zu den Token-Farben passen -> muss den ΔE-Check bestehen."""
+    hexes = [doc["color"][r]["$value"] for r in ("background", "surface", "text", "primary", "accent", "muted")]
+    pal = doc["color"]["palette"]
+    hexes += [pal[k]["$value"] for k in pal if not k.startswith("$")]
+    return {
+        "source": {"images_dir": "/tmp/x", "image_count": 5},
+        "palette": [{"hex": h.lower(), "dominance": round(1 / len(hexes), 4)} for h in hexes],
+        "metrics": {
+            "temperature": doc["$extensions"]["boardStyle"]["temperature"],
+            "saturation": "medium",
+            "contrast": "medium",
+        },
+        "edgeColors": {},
+    }
+
+
+COOL_FACTS = {
+    "source": {"images_dir": "/tmp/x", "image_count": 5},
+    "palette": [
+        {"hex": "#1c2733", "dominance": 0.4},
+        {"hex": "#31414f", "dominance": 0.3},
+        {"hex": "#8fa3b0", "dominance": 0.2},
+        {"hex": "#dfe6ea", "dominance": 0.1},
+    ],
+    "metrics": {"temperature": "cool", "saturation": "low", "contrast": "high"},
+    "edgeColors": {"01": {"top": "#1c2733", "bottom": "#31414f"}},
+}
+
+
+class TestFactsGate(unittest.TestCase):
+    """ΔE-Gate: Vision-Farben muessen nahe an der GEMESSENEN Palette liegen.
+    Regression fuer die DIY-Board-Halluzination (warm-rustikale Tokens, kuehles Board)."""
+
+    def setUp(self):
+        self.doc = json.loads(GOOD_TOKENS.read_text(encoding="utf-8"))
+
+    def test_delta_e_identical_and_far(self):
+        self.assertAlmostEqual(vt.delta_e("#22303c", "#22303c"), 0.0)
+        self.assertGreater(vt.delta_e("#000000", "#ffffff"), 50)
+
+    def test_matching_tokens_pass_facts_gate(self):
+        facts = _facts_from_doc(self.doc)
+        self.assertEqual(vt.validate_against_facts(self.doc, facts), [])
+
+    def test_hallucinated_warm_tokens_fail_against_cool_facts(self):
+        # der DIY-Fall: Vision liefert warm-rustikale Farben, gemessen ist kuehl-kinematisch
+        for role, warm in (("background", "#f4e8d8"), ("primary", "#a0522d"),
+                           ("accent", "#d2691e"), ("text", "#4a2c17")):
+            self.doc["color"][role]["$value"] = warm
+        errs = vt.validate_against_facts(self.doc, COOL_FACTS)
+        self.assertTrue(errs, "warm-rustikale Tokens gegen kuehle Fakten MUESSEN scheitern")
+        self.assertTrue(any("primary" in e for e in errs))
+
+    def test_temperature_mismatch_fails(self):
+        facts = _facts_from_doc(self.doc)
+        facts["metrics"]["temperature"] = (
+            "cool" if self.doc["$extensions"]["boardStyle"]["temperature"] != "cool" else "warm"
+        )
+        errs = vt.validate_against_facts(self.doc, facts)
+        self.assertTrue(any("temperature" in e for e in errs))
+
+    def test_edge_colors_count_as_anchors(self):
+        facts = _facts_from_doc(self.doc)
+        # gemessene Palette allein deckt nichts ab; alle Token-Farben sind nur ueber
+        # edgeColors verankert -> muss trotzdem passen
+        facts["palette"] = [{"hex": "#1c2733", "dominance": 1.0}]
+        facts["edgeColors"] = {f"{i:02d}": {"top": p["hex"], "bottom": p["hex"]}
+                               for i, p in enumerate(_facts_from_doc(self.doc)["palette"], 1)}
+        errs = [e for e in vt.validate_against_facts(self.doc, facts) if "temperature" not in e]
+        self.assertEqual(errs, [])
+
+    def test_cli_facts_gate_red_and_green(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tokens_path = Path(tmp) / "t.tokens.json"
+            tokens_path.write_text(json.dumps(self.doc), encoding="utf-8")
+            good_facts = Path(tmp) / "good-facts.json"
+            good_facts.write_text(json.dumps(_facts_from_doc(self.doc)), encoding="utf-8")
+            bad_facts = Path(tmp) / "bad-facts.json"
+            bad_facts.write_text(json.dumps(COOL_FACTS), encoding="utf-8")
+            self.assertEqual(vt.main([str(tokens_path), "--facts", str(good_facts)]), 0)
+            self.assertEqual(vt.main([str(tokens_path), "--facts", str(bad_facts)]), 1)
+
+    def test_cli_without_facts_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tokens_path = Path(tmp) / "t.tokens.json"
+            tokens_path.write_text(json.dumps(self.doc), encoding="utf-8")
+            self.assertEqual(vt.main([str(tokens_path)]), 0)
+
+
 class TestInstructionRichFields(unittest.TestCase):
     def test_instruction_requests_new_fields(self):
         for kw in ("accentPalette", "webfonts", "motifs", "imageRoles", "edgeColors"):

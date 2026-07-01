@@ -104,7 +104,10 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
   nur der allererste uv-Lauf lädt Pillow einmalig in den uv-Cache).
 - **Validator-Strenge (ehrlich):** `validate_tokens.py` prüft die **Kern-Invarianten** (Hex-Farben,
   Pflicht-Rollen, Enums, confidence-Range) — **nicht** das vollständige JSON-Schema. Das komplette
-  DTCG-Schema liegt in `.claude/skills/board-style-extractor/dtcg.schema.json`.
+  DTCG-Schema liegt in `.claude/skills/board-style-extractor/dtcg.schema.json`. Mit
+  `--facts .cache/<slug>/facts.json` kommt das **ΔE-Gate** dazu: jede Vision-Farbe muss nahe an der
+  gemessenen Palette liegen (CIE76, Default ≤ 30), `temperature` muss zur Messung passen —
+  halluzinierte Farben werden damit zu einem roten Gate statt zu einem stillen Fehler.
 
 ## Struktur
 
@@ -134,7 +137,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
 | Pixel-Fakten (`extract_facts.py`, uv+Pillow) — gemessene Palette/edgeColors/metrics als Analyse-Anker | ✅ |
 | Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
-| Token-Validator (`validate_tokens.py`) — Kern-Invarianten + optionale Stufe-1-Felder | ✅ |
+| Token-Validator (`validate_tokens.py`) — Kern-Invarianten + Stufe-1-Felder + ΔE-Gate gegen facts.json | ✅ |
 | **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) + optionaler Export-Ordner fuer Bild-Rohpakete (Tokens erst nach Analyse) | ✅ |
 | Adapter Claude-Design-Import (`tokens_to_ds.py`) | ✅ |
 | **Adapter portables Style-Skill (`build_style_skill.py`)** — Tokens + Bilder → SKILL.md/CSS/images, byte-deterministisch | ✅ |
