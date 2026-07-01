@@ -87,7 +87,8 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
   normale MCP-Aufruf exportiert zusätzlich automatisch ein `style-skill`-Paket mit `images/` in einen
   Claude-sichtbaren Sandbox-/Upload-Pfad: `<claude-files>/<slug>/style-skill/`. Mit
   `export_format: "none"` lässt sich dieser Export bewusst abschalten; mit `export_format:
-  "design-system"` wird stattdessen ein Design-System-Startpaket geschrieben. Das **CLI**
+  "design-system"` wird stattdessen ein Design-System-Rohpaket (Bilder + Manifest, ohne Tokens)
+  geschrieben — echte Tokens entstehen erst nach der Vision-Analyse via `build_style_skill.py`. Das **CLI**
   `fetch_board.py` cachet projektlokal nach `./.cache/<slug>/` (per `--out` änderbar).
 - **Einbettung im Chat:** Für Claude-Desktop-Artefakte sind Host-Pfade wie `/Users/tom/...` nicht
   zuverlässig lesbar. Der MCP schreibt deshalb im Exportpaket `embeddable-images.json` mit
@@ -127,7 +128,7 @@ Beide teilen denselben Kern: `scripts/fetch_board.py` (RSS → Bilder) + dasselb
 | RSS-Fetcher (`fetch_board.py`) | ✅ |
 | Skill `board-style-extractor` (+ volles DTCG-Schema `dtcg.schema.json`) | ✅ |
 | Token-Validator (`validate_tokens.py`) — Kern-Invarianten + optionale Stufe-1-Felder | ✅ |
-| **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) + optionaler Export-Ordner fuer Design-System-Startpakete | ✅ |
+| **stdio-MCP-Server (`mcp_server.py`)** — reichere Vision-Analyse (Webfonts/Akzente/Motive/Bild-Rollen) + optionaler Export-Ordner fuer Bild-Rohpakete (Tokens erst nach Analyse) | ✅ |
 | Adapter Claude-Design-Import (`tokens_to_ds.py`) | ✅ |
 | **Adapter portables Style-Skill (`build_style_skill.py`)** — Tokens + Bilder → SKILL.md/CSS/images, byte-deterministisch | ✅ |
 | Test-Gate (`./test.sh`, stdlib, kein Netz) | ✅ 40 Tests |

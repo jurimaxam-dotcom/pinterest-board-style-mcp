@@ -188,7 +188,29 @@ class TestSharedAssetPipeline(unittest.TestCase):
                     )
             self.assertTrue(any(item.get("type") == "text" and "Export gespeichert" in item.get("text", "") for item in output))
             self.assertTrue(Path(tmp, "images", "01.jpg").exists())
-            self.assertTrue(Path(tmp, "styles.css").exists())
+            self.assertTrue(Path(tmp, "embeddable-images.json").exists())
+
+    def test_export_bundle_contains_no_invented_tokens(self):
+        """Das Bundle darf nur Echtes liefern: keine Slug-Hash-Palette, keine erfundenen
+        Radius-Werte, kein styles.css, das nur erfundene Tokens importiert. Echte Tokens
+        entstehen erst NACH der Analyse (build_style_skill.py)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("mcp_server.CACHE_ROOT", Path(tmp) / "cache"):
+                with patch("board_assets.http_get", side_effect=[FIXTURE, b"img-1", b"img-2", b"img-3"]):
+                    srv.tool_get_board_style(
+                        {
+                            "board_url": "https://www.pinterest.com/testuser/test-board/",
+                            "max_images": 3,
+                            "export_format": "design-system",
+                            "export_dir": tmp,
+                        }
+                    )
+            self.assertFalse(Path(tmp, "tokens").exists(), "tokens/ mit erfundener Palette darf nicht existieren")
+            self.assertFalse(Path(tmp, "styles.css").exists(), "styles.css importiert nur erfundene Tokens")
+            skill_md = Path(tmp, "SKILL.md").read_text(encoding="utf-8")
+            self.assertNotIn("tokens/", skill_md, "SKILL.md darf nicht auf nicht-existente tokens/ verweisen")
+            readme = Path(tmp, "readme.md").read_text(encoding="utf-8")
+            self.assertNotIn("tokens/", readme, "readme darf nicht auf nicht-existente tokens/ verweisen")
 
     def test_mcp_tool_uses_sandbox_root_when_export_dir_missing(self):
         with tempfile.TemporaryDirectory() as tmp:

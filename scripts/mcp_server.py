@@ -79,11 +79,6 @@ def render_instruction(count, slug, cache) -> str:
             .replace("{cache}", str(cache)))
 
 
-def _slug_to_hex(slug: str, offset: int = 0) -> str:
-    value = (sum(ord(ch) for ch in slug) + offset * 97) % 0xFFFFFF
-    return f"#{value:06x}"
-
-
 def render_embeddable_image_sources(manifest_path: Path, image_count: int) -> str:
     lines = [
         "EMBEDDABLE_IMAGE_SOURCES",
@@ -137,30 +132,7 @@ def write_export_bundle(assets: dict, *, export_dir: str | os.PathLike[str], exp
                 "css": f"background-image: url('{data_uri}');",
             })
 
-    tokens_dir = export_dir / "tokens"
-    tokens_dir.mkdir(parents=True, exist_ok=True)
     slug = assets.get("slug", export_dir.name)
-    colors = [
-        ("background", _slug_to_hex(slug, 0)),
-        ("surface", _slug_to_hex(slug, 1)),
-        ("text", _slug_to_hex(slug, 2)),
-        ("primary", _slug_to_hex(slug, 3)),
-        ("accent", _slug_to_hex(slug, 4)),
-        ("muted", _slug_to_hex(slug, 5)),
-    ]
-    color_css = ["/* Auto-generated starter palette from the board slug. */", ":root {"]
-    color_css.extend(f"  --color-{name}: {value};" for name, value in colors)
-    color_css.append("}")
-    (tokens_dir / "colors.css").write_text("\n".join(color_css) + "\n", encoding="utf-8")
-    (tokens_dir / "radius.css").write_text(
-        ":root {\n  --radius-base: 12px;\n  --radius-lg: 24px;\n}\n",
-        encoding="utf-8",
-    )
-
-    (export_dir / "styles.css").write_text(
-        '@import "tokens/colors.css";\n@import "tokens/radius.css";\n',
-        encoding="utf-8",
-    )
     (export_dir / "analysis.md").write_text(
         f"Board: {assets.get('board_url')}\nSlug: {slug}\nImages: {assets.get('image_count')}\n",
         encoding="utf-8",
@@ -168,12 +140,14 @@ def write_export_bundle(assets: dict, *, export_dir: str | os.PathLike[str], exp
     (export_dir / "readme.md").write_text(
         f"# {slug} — Design-System-Export\n\n"
         f"Diese Ordnerstruktur ist fuer Claude Design/Claude Desktop vorbereitet. "
-        f"Die Bilder liegen in `images/`, die Starter-Tokens in `tokens/`.\n",
+        f"Die Bilder liegen in `images/`. Echte Design-Tokens entstehen erst nach der "
+        f"Vision-Analyse (siehe `scripts/build_style_skill.py`).\n",
         encoding="utf-8",
     )
     (export_dir / "SKILL.md").write_text(
-        f"---\nname: {slug}-design\ndescription: Use this package as a starter design system for board-derived UI work.\nuser-invocable: true\n---\n\n"
-        "Use the images in `images/` as references and the CSS variables in `tokens/` as your baseline.\n",
+        f"---\nname: {slug}-design\ndescription: Use this package as image reference material for board-derived UI work.\nuser-invocable: true\n---\n\n"
+        "Use the images in `images/` as style references. Derive design tokens from the "
+        "board analysis (tokens.json), not from this package.\n",
         encoding="utf-8",
     )
     (export_dir / "embeddable-images.json").write_text(
