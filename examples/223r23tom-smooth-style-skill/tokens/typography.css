@@ -1,0 +1,6 @@
+/* typography.css — Best-Match-Webfonts (Best-Match inferiert, kein erfundener Fontname). */
+:root {
+  --font-heading: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  /* Klassifikation aus dem Board: sans */
+}

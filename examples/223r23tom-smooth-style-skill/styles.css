@@ -1,0 +1,6 @@
+/* styles.css — bindet alle Token-Ebenen ein. In dein Projekt importieren. */
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/radius.css";
+@import "tokens/spacing.css";
+@import "tokens/shadow.css";

@@ -1,0 +1,25 @@
+/* colors.css — Kernpalette + Akzent-/Wuerze-Palette aus dem Board. */
+:root {
+  --color-background: #0b1e27;
+  --color-surface: #2c4145;
+  --color-text: #b6beb6;
+  --color-primary: #80969c;
+  --color-accent: #5c7682;
+  --color-muted: #5f7274;
+
+  /* volle Palette nach Dominanz */
+  --color-palette-0: #80969c;
+  --color-palette-1: #4a5556;
+  --color-palette-2: #142426;
+  --color-palette-3: #5f7274;
+  --color-palette-4: #050f13;
+  --color-palette-5: #2c4145;
+  --color-palette-6: #b6beb6;
+  --color-palette-7: #748079;
+
+  /* Akzent-/Wuerze-Palette — SPARSAM einsetzen (Ausreisser als Wuerze) */
+  --accent-0: #5c7682;  /* Horizontblau — Links, aktive Zustaende, Fokusringe */
+  --accent-1: #779ab0;  /* Alpendunst — hellster Akzent — Hover, Hervorhebung auf dunklem Grund */
+  --accent-2: #717a61;  /* Grasgruen gedaempft — sekundaerer Akzent, Erfolgs-/Naturkontext */
+  --accent-3: #636979;  /* Vortex-Violettgrau — seltener Kaltakzent, Randglow */
+}
